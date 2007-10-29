@@ -1,0 +1,175 @@
+/* config.h.in.  Generated from configure.in by autoheader.  */
+
+/* Path to the clamav databases binary */
+#undef CLAMAVDBPATH
+
+/* "clamdscan program" */
+#undef CLAMDSCAN
+
+/* "working directory" */
+#undef CONTROLDIR
+
+/* run ripmime program */
+#undef DO_RIPMIME
+
+/* "dspam program" */
+#undef DSPAM
+
+/* "dspam arguments" */
+#undef DSPAM_ARGS
+
+/* enable attachment scanning */
+#undef ENABLE_ATTACH
+
+/* enable clamav scanning */
+#undef ENABLE_CLAMAV
+
+/* enable custom smtp reject message with virus name */
+#undef ENABLE_CUSTOM_SMTP_REJECT
+
+/* enable drop message */
+#undef ENABLE_DROPMSG
+
+/* enable dspam scanning */
+#undef ENABLE_DSPAM
+
+/* dspam --user user@domain option. */
+#undef ENABLE_DSPAM_USER
+
+/* enable per domain checking */
+#undef ENABLE_PER_DOMAIN
+
+/* enable received header */
+#undef ENABLE_RECEIVED
+
+/* enable regex scanner */
+#undef ENABLE_REGEX
+
+/* enable spam scanning */
+#undef ENABLE_SPAM
+
+/* spamc -u user@domain option. */
+#undef ENABLE_SPAMC_USER
+
+/* scan authenticated users for spam. */
+#undef ENABLE_SPAM_AUTH_USER
+
+/* pass spam through to user */
+#undef ENABLE_SPAM_PASSTHRU
+
+/* enable trophie scanning */
+#undef ENABLE_TROPHIE
+
+/* "system supports nproc ulimit" */
+#undef HAS_ULIMIT_NPROC
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strsep' function. */
+#undef HAVE_STRSEP
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* "qmail directory" */
+#undef QMAILDIR
+
+/* "qmail-queue program" */
+#undef QMAILQUEUE
+
+/* "quarantine directory" */
+#undef QUARANTINEDIR
+
+/* key for attachment scanner */
+#undef RCVD_ATTACH_KEY
+
+/* key for clamav */
+#undef RCVD_CLAM_KEY
+
+/* key for dspam */
+#undef RCVD_DSPAM_KEY
+
+/* key for regex scanner */
+#undef RCVD_REGEX_KEY
+
+/* key for spamassassin */
+#undef RCVD_SPAM_KEY
+
+/* key for clamav */
+#undef RCVD_TROPHIE_KEY
+
+/* "ripmime program" */
+#undef RIPMIME
+
+/* Path to the sigtool binary. */
+#undef SIGTOOLPATH
+
+/* Path to the spamassassin binary */
+#undef SPAMASSASSINPATH
+
+/* "spamc program" */
+#undef SPAMC
+
+/* "spamc arguments" */
+#undef SPAMC_ARGS
+
+/* "spam hits" */
+#undef SPAM_HITS
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* "path to trophie binary" */
+#undef TROPHIEBINARY
+
+/* "path to trophie socket" */
+#undef TROPHIESOCKET
+
+/* Version number of package */
+#undef VERSION
+
+/* one or more virusscanners are active */
+#undef VIRUSSCANNER
+
+/* "working directory" */
+#undef WORKDIR

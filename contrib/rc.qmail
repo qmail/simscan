@@ -1,0 +1,100 @@
+#!/bin/sh
+#
+# qmail         This shell script takes care of starting and stopping
+#               the email services: pop3, pop3s, smtp, smtps and qmail 
+#
+# chkconfig: 345 80 30
+# description: Qmail(DJB) MTA plus smtp (TSL/SSL/AUTH), pop3 and pop3 
+#              over SSL and the qmail daemons owned by qmail-send. 
+#              Everything is logged to /var/log directories.
+# requires: ucspi-tcp with ssl and pid patches 
+#           see software at http://www.inter7.com
+#
+#
+
+HOSTNAME=`hostname`
+
+# See how we were called.
+case "$1" in
+  start)
+
+        cd /
+
+	echo -n "Starting: "
+	env - PATH="/var/qmail/bin:/usr/local/bin:$PATH" \
+	qmail-start ./Maildir/ | /usr/local/bin/setuidgid qmaill \
+	/usr/local/bin/multilog t n20 s1000000 /var/log/qmail &
+	echo -n "qmail "
+
+	env - PATH="/var/qmail/bin:/usr/local/bin:$PATH" \
+	tcpserver -vHRD -l$HOSTNAME -c100 -w /var/run/pop3.pid \
+        0 110 /var/qmail/bin/qmail-popup $HOSTNAME \
+        /home/vpopmail/bin/vchkpw /var/qmail/bin/qmail-pop3d \
+	Maildir 2>&1 |  /usr/local/bin/setuidgid qmaill \
+	/usr/local/bin/multilog t n20 s1000000 /var/log/pop3 &
+	echo -n "pop3 "
+
+	env - PATH="/var/qmail/bin:/usr/local/bin:$PATH" \
+	tcpserver -vsHRD -l$HOSTNAME -c100 -w /var/run/pop3s.pid \
+        0 995 /var/qmail/bin/qmail-popup \
+	$HOSTNAME /home/vpopmail/bin/vchkpw /var/qmail/bin/qmail-pop3d \
+	Maildir 2>&1 |  /usr/local/bin/setuidgid qmaill \
+	/usr/local/bin/multilog t n20 s1000000 /var/log/pop3s &
+	echo -n "pop3/ssl "
+
+        env - PATH="/var/qmail/bin:/usr/local/bin:$PATH" \
+        QMAILQUEUE="/var/qmail/bin/simscan" \
+        tcpserver -vHRD -l$HOSTNAME -x /home/vpopmail/etc/tcp.smtp.cdb \
+        -c100 -w /var/run/smtpd.pid 0 25 rblsmtpd -b -r sbl-xbl.spamhaus.org \
+        /var/qmail/bin/qmail-smtpd /home/vpopmail/bin/vchkpw /bin/true 2>&1 | \
+        /usr/local/bin/setuidgid qmaill \
+        /usr/local/bin/multilog t n20 s1000000 /var/log/smtp &
+	echo -n "smtp "
+
+        env - PATH="/var/qmail/bin:/usr/local/bin:$PATH" \
+        QMAILQUEUE="/var/qmail/bin/simscan" \
+        tcpserver -svHRD -l$HOSTNAME -x /home/vpopmail/etc/tcp.smtp.cdb \
+        -c100 -w /var/run/smtpds.pid 0 465 rblsmtpd -b -r sbl-xbl.spamhaus.org \
+        /var/qmail/bin/qmail-smtpd /home/vpopmail/bin/vchkpw /bin/true 2>&1 | \
+        /usr/local/bin/setuidgid qmaill \
+        /usr/local/bin/multilog t n20 s1000000 /var/log/smtps &
+	echo  "smtp/ssl "
+
+	;;
+  stop-pop)
+        echo "stopping pop3 server"
+	kill `cat /var/run/pop3.pid`
+	kill `cat /var/run/pop3s.pid`
+        ;;
+  stop-smtp)
+        echo "stopping smtp server"
+	kill `cat /var/run/smtpd.pid`
+	kill `cat /var/run/smtpds.pid`
+        ;;
+  stop)
+	echo -n "stopping qmail"
+	kill `cat /var/run/pop3.pid` 
+	kill `cat /var/run/pop3s.pid` 
+	kill `cat /var/run/smtpd.pid` 
+	kill `cat /var/run/smtpds.pid` 
+	killall -q qmail-send
+	killall -q qmail-remote 
+	killall -q qmail-pop3d 
+	killall -q qmail-popup 
+	killall -q qmail-smtpd 
+	echo
+	;;
+  flush)
+        /var/qmail/bin/qmail-tcpok
+        killall -ALRM qmail-send
+        echo "qmail queue flushing"
+        ;;
+  restart)
+	$0 stop
+	$0 start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart|flush|stop-pop|stop-smtp}"
+	exit 1
+esac
+exit 

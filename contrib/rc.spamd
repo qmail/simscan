@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# spamassassin This script starts and stops the spamd daemon
+#
+# chkconfig: 2345 80 30
+#
+# description: spamd is a daemon process which uses SpamAssassin to check
+#              email messages for SPAM.  It is normally called by spamc
+#	       from a MDA.
+# chkconfig: 345 40 80
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+PATH=$PATH:/usr/local/sbin
+case "$1" in
+  start)
+	cd /
+
+	spamd -c -v -u vpopmail -s stderr -r /var/run/spamd.pid \
+        --socketpath=/tmp/spamd.sock 2>&1 | \
+        /usr/local/bin/setuidgid qmaill \
+	/usr/local/bin/multilog t n20 s1000000 /var/log/spamd &
+	echo "spamd started"
+ 	;;
+
+  stop)
+        if [ -r /var/run/spamd.pid ]; then
+          pid=`cat /var/run/spamd.pid`
+          kill $pid || ( echo "failed to stop spamd" && exit 1 )
+          echo "spamd (pid $pid) stopped"
+        else
+          echo "/var/run/spamd.pid doesn't exist, is spamd running?"
+        fi
+	;;
+
+  restart)
+	$0 stop && sleep 2 &&  $0 start
+	;;
+
+  *)
+	echo "usage: $0 (start|stop|restart)"
+	;;
+esac

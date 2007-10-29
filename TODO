@@ -1,0 +1,18 @@
+revamp "on/off" features for more granularity
+
+investigate ways of parsing headers from spamassassin for spamassassin 3.0
+
+change ifdef DEBUG to environment variable check (should be simple, have an
+	env check set a global variable and have if statements before debug
+	output.  Also, set it up so debugging can be completely disabled
+	at compile time.. --disable-debug
+
+capture clamdscan output and parse out the virus for the log files
+
+perhaps add in support for the custom error code patch (low priority) so we
+	can send back why the message was rejected to the client
+	ie, virus, spam, etc..
+	this would be an option that would have to be compiled in as an option
+	on the ./configure script, of course
+	
+Install should create quarantine directory with proper permissions

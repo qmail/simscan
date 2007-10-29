@@ -1,0 +1,358 @@
+10/29/07 Ken Jones
+         - release version 1.4.0 with p0f code moved to qmail-smtpd
+
+03/11/07 Ken Jones
+         - for dspam only authorized users can send email to spam@ and nospam@,
+           includes support for custom smtp error message
+
+05/18/06 George Breahna
+         - first version of DSPAM support
+
+         R
+         - add u_char casting to isupper and tolower
+
+01/07/06 Ken Jones
+         - envoke ripmime with --disable-qmail-bounce
+
+01/07/06 Ken Jones
+         - reject blank envelopes with proper error
+
+10/05/05 Ken Jones
+         - found an IsSpam=1.0 instead of IsSpam==1
+            for the spam passthru setting
+
+10/04/05 Ken Jones
+         - virus drop message was not exiting at the right time.
+             Found by Russ Lists
+         - use per domain hit count on spam log message if set.
+         - if read from standard in fails the temp file was not
+             closed so the temporary work directory would not
+             be removed. 
+
+09/30/05 Ken Jones
+         - put 's' at the end of processing time and
+            move to after status.
+         - add RELAYCLIENT log line. suggested by Sim
+         - replace --with-pcre with two new ones
+            --with-pcre-lib --with-pcre-include
+         - update configure regex section to report the
+            two new --with-pcre lines
+         - A value of 5 was being checked instead of
+            the SPAM_HITS value. Found by Jeremy Kister.
+         - Change SpamHits > to SpamHits >=
+           
+
+09/28/05 Ken Jones
+         - update logging documentation on qmailwiki.org
+         - add VIRUS DROPPED logging message
+         - clearer --enable-spam-auth-user config message
+         - put #ifdef ENABLE_SPAM around the spam processing
+            section in per_domain_lookup() function 
+            Reported by Gerad Earley
+         - Change received header printf to %d for compiler warnings
+         - add SPAM DROPPED log message
+         - add processing time field to logging
+         - add spam score and required hits to logging
+
+09/27/05 Ken Jones
+         - New global IsSpam flag
+         - rewrite is_spam() to assume one line per invocation
+         - rewrite check_spam() to use FILE and fgets to call
+             is_spam with one line per invocation
+         - Use IsSpam flag instead of over loaded SpamHits=1.0
+             to determine if email is spam. This also returns
+             a valid spam hit count in custom smtp error message
+         - move definition of qmail_queue outside per domain ifdef
+         - new configure option --enable-spam-auth-user default to
+           not scan authenticated users with spamassasin
+         - update copyright year
+         - add standarized reporting line for attachment and regex
+            rejects
+
+09/27/05 Bruno Negrao
+         - in per domain processing an attachment list should override
+           the global attachment list 
+
+02/08/05 Tom Collins
+         - simscan.c do not spam scan for RELAYCLIENT users
+         - complier warnings for getpid(),getppid()
+
+02/06/05 Itamar Reis Peixoto
+         - rc.spamd sample init script change to remove clamd with spamd
+         - rc.qmail same change to this init script sample
+
+02/02/05 Ken Jones
+         - 1.1 release 
+
+01/26/05 Alex Pleiner   
+         - clean up for addr parse bug and per domain pass through debug
+
+01/21/05 Flavio Curti
+         - spam passthru change in how it returns a value
+
+         Daniel Maglione
+		 - spam passthru log changes
+        
+
+11/30/04 Ken Jones / Tren Blackburn
+         - add --enable-controldir option for over riding the default 
+         location for simscan control files. Default: /var/qmail/control
+
+11/24/05 Daniel Maglione
+         - change logging message for per domain spam pass thru 
+
+11/24/04 Ken Jones
+         - strsep code if system does not support strsep: solaris
+         - change int fd to static int fd in main for warning
+         - change %d to %ld for getpid value warning
+         - set HAS_ULIMIT_NPROC on all systems except solaris
+         - ifdef around ulimit setting 
+
+11/22/04 Daniel Maglione
+         - support for spam passthru in per domain code
+
+11/20/04 Flavio Curti
+         - support for regex matching on per domain basis
+           --enable-regex
+           --with-pcre=/prefix/of/pcre
+         - change strtok to strsep
+
+11/17/04 Ken Jones
+         - clamav does not enable ripmime by default
+         - clean up configure option report
+         - attempt to auto detect spamassassin path with received header
+           and spam processsing enabled
+
+11/17/04 Flavio Curti / Ken Jones
+         - add /usr/bin/sigtool and /var/lib/clamav to auto detect paths
+           for received header processing
+
+11/16/04 Ken Jones
+         - configure attempts to auto detect where clamavdb and sigtool are
+         - add -v version switch to simscan
+
+11/15/04 Ken Jones
+         - re-do rcpt to handling for unlimited rcpt to's. 
+
+11/10/04 Ken Jones
+         - attachment checking should be case insensitive
+         - do not check . and .. directory entries on attachments
+         - "single character".exe would not match .exe attachment 
+
+11/09/04 Flavio Curti / Ken Jones
+         - with per domain, disable spam/clam/trophie by default
+
+11/08/04 Ken Jones
+         - changed while loop to for loop and boundary check on
+           processing RcptTo array. 
+
+11/08/04 Jason Frisvold / Niek
+         - fix drop message code when not enabled
+
+11/05/04 Daniel Maglione
+         - set system fork limits high to overcome fork process limits on
+           heavily loaded systems
+         - new --enable-quarantinedir=DIR option to allow for quarantine
+           of messages for later processing
+         - new -enable-dropmsg option to accept email and silently drop
+           viruses and spam emails.
+
+11/04/04 Dmitriy MiksIr / Ken Jones
+         - allow disabling ripmime in configure script --disable-ripmime
+           even if virus scanning is selected
+         - allow disabling ripmime in simscan based on configure script
+         - Makefile: set mode on simscan binary after setting ownership
+
+10/30/04 Flavio Curti 
+         - fixes the version grabber with spamassassin 3.0
+
+10/29/04 Ken Jones
+         - Update README on how to list attachments
+
+10/28/04 Flavio Curti
+         - simscanmk has new -g option to build the version database
+           for the new received header option
+         - if you enable per domain and use attach= and have other options after
+           attach= those would have been ignored, this is fixed.
+         - log format update, no more spaces between the different
+           rcpts, and if received is enabled the run-time gets added as well at
+           the end (time: )
+         - the way the injection into qmail-queue works has changed. in any
+           case. it does work the same way as before.
+         - optionally add a received header with version information
+           --enable-received=y|n
+           Simscan adds a Received line, showing the runtime, and a version 
+           string of the scanners that checked the message:
+           Received: by simscan 1.0.6 ppid: 25399, pid: 25400, t: 4.7007s
+            scanners: attach: 1.0.6 clamav: 0.80/m:27/d:556 
+            trophie: 7.000-1011/218/74141 spam: 2.63
+         - new options for --enable-received option 
+            --enable-spamassassin-path=PATH Path to the spamassassin binary
+            --enable-clamavdb-path=PATH     Directory where the clamav 
+               master.cvd and daily.cvd files are saved
+            --enable-sigtool-path=PATH      Path to the sigtool binary
+            --enable-trophie-path=PATH (if trophie is used)
+           These are used to build the version database information
+         - configure.in needs to use ENABLE_SPAMC_ARGS on info line
+
+10/28/04 Ken Jones
+         - Makefile.am simscanmk.o needed to depend on config.h
+         - have ENABLE_SPAM 1 instead of just ENABLE_SPAM
+         - have ENABLE_TROPHIE 1 instead of just ENABLE_TROPHIE
+
+10/27/04 Kiril Todorov / Ken Jones
+         - fix configure.in syntax error on --enable-spamc-args
+         - configure --help should show --enable-spam-passthru
+
+10/27/04 Niek / Ken Jones
+         - remove un-needed "./" clamdscan argument
+
+10/26/04 Eduardo M. Bragatto / Ken Jones
+         - Do not use per user spamc option if more than one
+           receipient.
+
+10/26/04 Jason Frisvold
+         - more comprehensive readme documentation
+
+10/23/04 Ken Jones / Jason Frisvold
+         - added --enable-spamc-args to set spamc args during configure
+           instead of having to edit simscan.c
+         - added --enable-spamc-user to set the -u user@domain option
+           to spamc
+
+10/22/04 Ken Jones
+         - added --enable-spam-passthru feature to allow email to run
+           through spamassassin and then passed through to the user
+         - fix another line in spam header parsing code from 10/21/04
+
+10/21/04 Jason Frisvold / Ken Jones
+         - support for spamassassin 3 default setup use "score=" instead
+           of "hits="
+         - do not die if either one of the above is not found. Added 
+           debug statement when not found.
+
+10/21/04 Jason Frisvold
+         - add support for spam hit count in simcontrol file, for example:
+           :spam=yes,clam=yes,spam_hits=32.5
+         - a bunch of additional debugging printouts
+
+10/19/04 Flavio Curti / Ken Jones
+         - call ripmime if either attachment blocking or clamav is enabled
+         - modifications to configure.in to support the above
+
+10/17/04 Flavio Curti 
+         - Trophie can be enabled/disabled in the per_domain_file (trophie=)
+         - attachments can be handled by the per_domain_file
+           attach=listof files separated by colons
+         - per_domain checks now sender and all reciepients
+         - per_domain handles now qmail extensions, 
+           read the README on how it works
+         - debug messages so they get only displayed with a debuglevel > 1
+
+10/16/04 Flavio Curti
+         - support for trophie http://www.vanja.com/tools/ 
+           an interface to Trend Micro virus scanner 
+         - when SIMSCAN_DEBUG is set do not delete the work files 
+
+10/16/05 Ken Jones
+         - Allow group access to work directories so clamd can
+           access the work directories when clamd runs as clamav user
+           and added to simscan group
+
+10/14/05 Ken Jones
+         - update reject message code to support file descriptor 4 in
+           the new qmail-queue-custom-error.patch version
+         - attachment reads /var/qmail/control/ssattach file now
+         - custom reject message for bad attachments
+         - log attachment rejections
+         - new RcptTo/MailFrom parsing code. The old stuff was broken.
+         - hardcoded /var/qmail paths now use QMAILDIR 
+
+10/13/04 Ken Jones / Jeremy Kitchen
+         - use SIMSCAN_DEBUG environment variable to enable error logging
+         - debug output now goes to stderr for logging 
+         - Makefile.am: simscan.o needs to depend on config.h
+         - new --enable-custom-smtp-reject option to return an smtp reject
+           message with the virus name detected. Requires the contrib
+           directory  qmail-queue-custom-error.patch patch to be applied 
+           to the qmail source.
+
+10/12/04 Ken Jones 
+         - new log output format includes ip, virus name, to/from addresses
+         - read clamdscan's output to get virus name
+         - parse to/from addresses into global variable
+        
+10/08/04 Jeremy Kitchen
+	 - removed extra paren in an if statement that would cause
+	   compilation failures if debugging was enabled.  tx Al Battrick
+
+10/05/04 Version 1.0.5 (devel)
+         Jeremy Kitchen
+	 - fixed bug in Makefile.am, thanks Bastiaan van der Put.
+	 - fixed clamdscan exit code handling.  *smacks Ken* :)
+	 - changed check_scan to not close fd 1 and 2
+         - changed installation a little more.
+	 - switching to CVS tree to make life easier.
+
+10/04/04 Version 1.0.4 (devel)
+         Jeremy Kitchen
+         - changed Makefile.am to set proper permissions on simscan binary
+         - changed configure.in to better test for the simscan user
+         - added support for command line changing of simscan user 
+           --enable-user=<user>
+         - changed Makefile.am to set the mode on the working directory to 700
+
+
+09/14/04 Version 1.0.4 (devel)
+         Ken Jones / Jeremy Kitchen
+         - print to stderr when virus detected with IP address
+
+         Suggested by Rick Macdougall coded by Ken Jones
+         - make unique file names for the message, to/from headers and the
+           optional spamassassin output. These files get unlinked before
+           exec'ing the --enable-qmail-queue=PATH program. Configure defaults
+           this value to the real qmail-queue program. 
+               data          file name
+             ____________   _______________
+             message fd 0 = msg.X.Y.Z          where X = unix seconds
+             to/from fd 1 = addr.X.Y.Z               Y = microseconds
+             spamassassin = spamc.msg.X.Y.Z          Z = simscan process id
+            fd 0 and fd 1 normally come from the qmail smtp daemon.
+
+            Simcan can optionally be turned on or off for different 
+            incoming IP ranges using the standard tcp.smtp.cdb file 
+            used by tcpserver/qmail-smtpd with the -x option.
+
+         - spam-hits was checking only greater than the reported hits. 
+           It should check for greater than or equal to.
+
+         Ken Jones
+         - updated INSTALL, README and ChangeLog documentation.
+
+         - fstat works on pipes, so switched per-domain code to allocate
+           memory for the envelope with one read and one write instead of
+           a read/write per character of the envelope.
+
+ 
+09/13/04 Version 1.0.3 (devel)
+         Ken Jones
+         - The --enable-spam option now checks for an X-Spam-Flag: YES header.
+           If found it returns a permenent refusal to accept message. The error
+           code translates to an SMTP 500 series message refusal.
+
+         - The --enable-spam-hits=hit_number option combinded with the 
+           --enable-spam option the perment refusal is based on the calculated
+           hit: value in the X-Spam-Status: header. This option allows a
+           system administrator to refuse email that has a fairly high 
+           hit count from spamassassin, like 10. Email that passes through
+           can then be scanned again with a users personal perferences.
+
+09/11/04 Version 1.0.2 (devel)
+         Ken Jones
+         - Enable clamav or spamassassin per domain
+         - new simscanmk program to build clamav or spamasassing enable lists
+
+07/20/04 Version 1.0 (production)
+         Ken Jones
+         - First production version
+

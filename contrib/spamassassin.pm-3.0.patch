@@ -1,0 +1,37 @@
+--- SpamAssassin.bak	2004-10-25 10:03:06.000000000 -0500
++++ SpamAssassin.pm	2004-10-25 10:48:21.000000000 -0500
+@@ -1418,7 +1418,7 @@
+ }
+ 
+ sub get_and_create_userstate_dir {
+-  my ($self) = @_;
++  my ($self,$userdir) = @_;
+ 
+   my $fname;
+ 
+@@ -1429,6 +1429,8 @@
+   }
+   elsif (defined $self->{user_dir}) {
+     $fname = File::Spec->catdir ($self->{user_dir}, ".spamassassin");
++  } else {
++    $fname = File::Spec->catdir ($userdir, ".spamassassin");
+   }
+ 
+   $fname ||= $self->first_existing_path (@default_userstate_dir);
+@@ -1462,15 +1464,11 @@
+     return(0);
+   }
+ 
+-  if ($userdir && $userdir ne $self->{user_dir}) {
+-    warn "Oops! user_dirs don't match! '$userdir' vs '$self->{user_dir}'\n";
+-  }
+-
+   if (!-f $fname)
+   {
+     # Pass on the value of $userdir for virtual users in vpopmail
+     # otherwise it is empty and the user's normal homedir is used
+-    $self->get_and_create_userstate_dir();
++    $self->get_and_create_userstate_dir($userdir);
+ 
+     # copy in the default one for later editing
+     my $defprefs = $self->first_existing_path (@Mail::SpamAssassin::default_prefs_path);
