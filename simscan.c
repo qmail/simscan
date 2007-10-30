@@ -1,5 +1,5 @@
 /*
- * $Id: simscan.c,v 1.4 2007/10/30 18:01:52 xen0phage Exp $
+ * $Id: simscan.c,v 1.5 2007/10/30 18:12:43 xen0phage Exp $
  * Copyright (C) 2004-2005 Inter7 Internet Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -291,6 +291,7 @@ int main(int argc, char **argv)
   }
 
   /* create the working directory, allow group access too */
+  umask(027);
   if ( mkdir(workdir, 0750) == -1 ) {
     if ( DebugFlag > 0 ) {
        fprintf(stderr, "simscan:[%d]: error making work dir, exit 400, errno: %d\n",
