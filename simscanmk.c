@@ -1,5 +1,5 @@
 /*
- * $Id: simscanmk.c,v 1.3 2007/10/30 17:49:24 xen0phage Exp $
+ * $Id: simscanmk.c,v 1.4 2007/10/30 18:01:52 xen0phage Exp $
  * Copyright (C) 2004-2005 Inter7 Internet Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -480,7 +480,7 @@ void get_options(int argc,char **argv)
   snprintf(ClearFile, sizeof(ClearFile), "%s/simcontrol", CONTROLDIR);
   snprintf(CdbFile, sizeof(CdbFile), "%s/simcontrol.cdb", CONTROLDIR);
 
-  snprintf(CdbTmpFile, sizeof(CdbTmpFile), "%s/ss.cdb.tmp.%ld", 
+  snprintf(CdbTmpFile, sizeof(CdbTmpFile), "%s/ss.cdb.tmp.%d", 
     CONTROLDIR, getpid());
 
   errflag = 0;
