@@ -1,5 +1,5 @@
 /*
- * $Id: simscanmk.c,v 1.2 2007/10/30 02:04:34 xen0phage Exp $
+ * $Id: simscanmk.c,v 1.3 2007/10/30 17:49:24 xen0phage Exp $
  * Copyright (C) 2004-2005 Inter7 Internet Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -74,10 +74,12 @@ int main( int argc, char **argv)
   get_options(argc,argv);
 #ifdef ENABLE_RECEIVED
   if (buildversions){
-    make_version_cdb();
+    int xcode = make_version_cdb();
+    if (xcode != 0) exit(xcode);
   } else {
 #endif
-  make_cdb();
+  int xcode = make_cdb();
+  if (xcode != 0) exit(xcode);
 #ifdef ENABLE_RECEIVED
   }
 #endif
@@ -389,6 +391,7 @@ int make_cdb()
  static char input[MAX_LINE];
  uint32 h;
 
+  sleep(0); /* some NFS timing crazyness on solaris jk 20061108 */
 
   if ( (fs = fopen(ClearFile,"r")) == NULL) {
     printf("Not building simcontrol.cdb file. No %s/simcontrol text file\n",
@@ -477,7 +480,7 @@ void get_options(int argc,char **argv)
   snprintf(ClearFile, sizeof(ClearFile), "%s/simcontrol", CONTROLDIR);
   snprintf(CdbFile, sizeof(CdbFile), "%s/simcontrol.cdb", CONTROLDIR);
 
-  snprintf(CdbTmpFile, sizeof(CdbTmpFile), "%s/ss.cdb.tmp.%d", 
+  snprintf(CdbTmpFile, sizeof(CdbTmpFile), "%s/ss.cdb.tmp.%ld", 
     CONTROLDIR, getpid());
 
   errflag = 0;

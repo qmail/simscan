@@ -1,3 +1,9 @@
+10/30/07 Jason Frisvold
+         - set exit code on errors - Jeremy Kister
+         - fix compile warning issues with long versus int - Jeremy Kister
+         - add pid to debug messages - Jeremy Kister
+         - RFC2822 Received field compliance - Tullio Andreatta
+
 10/29/07 Jason Frisvold
          - Support daily and main .inc and .cvd files (John Simpson)
          - Fixed a few compiler warnings (Jason Frisvold)

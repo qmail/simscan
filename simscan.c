@@ -1,5 +1,5 @@
 /*
- * $Id: simscan.c,v 1.2 2007/10/30 02:04:34 xen0phage Exp $
+ * $Id: simscan.c,v 1.3 2007/10/30 17:49:24 xen0phage Exp $
  * Copyright (C) 2004-2005 Inter7 Internet Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -73,6 +73,9 @@
        91   Envelope format error.
 */
 
+#if HAVE_STRSEP!=1
+char *strsep (char **pp, char *delim);
+#endif
 
 #ifdef QUARANTINEDIR 
 void quarantine_msg(char *message_name);
@@ -215,6 +218,10 @@ double utime;
 #ifdef ENABLE_RECEIVED
 char runned_scanners[MAX_EMAIL]="";
 void add_run_scanner(char *key);
+struct tm *tm;
+static char monthname[12][4] = {
+ "Jan","Feb","Mar","Apr","May","Jun"
+,"Jul","Aug","Sep","Oct","Nov","Dec"};
 #endif
 
 #ifdef ENABLE_REGEX
@@ -279,14 +286,14 @@ int main(int argc, char **argv)
   format_dir(workdir);
 
   if ( DebugFlag > 0 ) {
-    fprintf(stderr, "simscan: starting: work dir: %s\n", workdir);  
+    fprintf(stderr, "simscan[%ld]: starting: work dir: %s\n", getppid(), workdir);
   }
 
   /* create the working directory, allow group access too */
   if ( mkdir(workdir, 0750) == -1 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: error making work dir, exit 400, errno: %d\n",
-        errno);
+       fprintf(stderr, "simscan[%ld]: error making work dir, exit 400, errno: %d\n",
+               getppid(), errno);
     }
     _exit(EXIT_400);
   }
@@ -294,9 +301,8 @@ int main(int argc, char **argv)
   /* change to the new working directory */
   if ( chdir(workdir) != 0 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, 
-        "simscan: error changing directory to workdir errno: %d\n",
-        errno);
+      fprintf(stderr, "simscan[%ld]: error changing directory to workdir errno: %d\n",
+              getppid(), errno);
     }
     exit_clean(EXIT_400);
   }
@@ -305,8 +311,8 @@ int main(int argc, char **argv)
   snprintf(message_name, sizeof(message_name), "msg.%s", unique_ext);
   if ( (fd=open(message_name, O_WRONLY|O_CREAT|O_TRUNC,0644)) ==- 1) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: error opening msg file %s errnostr: %d\n", 
-        message_name, errno);
+       fprintf(stderr, "simscan[%ld]: error opening msg file %s errnostr: %d\n", 
+               getppid(), message_name, errno);
     }
     exit_clean(EXIT_400);
   }
@@ -315,7 +321,7 @@ int main(int argc, char **argv)
   while( (ret = read(0, buffer, sizeof(buffer))) > 0 ) {
     if ( write(fd, buffer,ret) == -1 ) {
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: error writing msg error: %d\n", errno);
+        fprintf(stderr, "simscan[%ld]: error writing msg error: %d\n", getppid(), errno);
       }
       /* on a write error close the file so we can remove the directory */
       close(fd);
@@ -326,7 +332,7 @@ int main(int argc, char **argv)
   /* close the file */
   if ( close(fd) == -1 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: error closing email file errno: %d\n", errno);
+      fprintf(stderr, "simscan[%ld]: error closing email file errno: %d\n", getppid(), errno);
     }
     exit_clean(EXIT_400);
   }
@@ -340,7 +346,7 @@ int main(int argc, char **argv)
   /* open the addr_name file */
   if ( (fd_per=open(addr_name, O_WRONLY|O_CREAT|O_TRUNC,0644)) ==- 1) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: error opening addr name: %s\n", addr_name);
+      fprintf(stderr, "simscan[%ld]: error opening addr name: %s\n", getppid(), addr_name);
     }
     exit_clean(EXIT_400);
   }
@@ -382,7 +388,7 @@ int main(int argc, char **argv)
         strncpy(MailFrom, &addr_buff[1], sizeof(MailFrom)-1);
         gotfrom = 1;
         if ( DebugFlag > 3 )
-          fprintf(stderr, "simscan: F envelope is %s\n", MailFrom);
+          fprintf(stderr, "simscan[%ld]: F envelope is %s\n", getppid(), MailFrom);
      }
      if (addr_buff[0] == 'T') {
         if (MaxRcptTo<MAX_RCPT_TO) {
@@ -390,7 +396,7 @@ int main(int argc, char **argv)
            gotrcpt = 1;
            MaxRcptTo ++;
            if ( DebugFlag > 3 )
-              fprintf(stderr, "simscan: T%d envelope is %s\n", MaxRcptTo, RcptTo[MaxRcptTo-1]);
+              fprintf(stderr, "simscan[%ld]: T%d envelope is %s\n", getppid(), MaxRcptTo, RcptTo[MaxRcptTo-1]);
         }
      }
    }
@@ -406,7 +412,7 @@ int main(int argc, char **argv)
 
   if ( MailFrom[0] == 0 && RcptTo[0][0] == 0 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: no envelope information, deferred exit\n");
+      fprintf(stderr, "simscan[%ld]: no envelope information, deferred exit\n", getppid());
     }
     exit_clean(EXIT_454);
   }
@@ -467,7 +473,7 @@ int main(int argc, char **argv)
   /* re-open the file read only */
   if ( (fd = open(message_name, O_RDONLY)) == -1 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: spam can not open file: %s\n", message_name);
+      fprintf(stderr, "simscan[%ld]: spam can not open file: %s\n", getppid(), message_name);
     }
     exit_clean(EXIT_400);
   }
@@ -475,7 +481,7 @@ int main(int argc, char **argv)
   /* set the standard input to be the new file */
   if ( fd_move(0,fd)  == -1 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: spam could not fd_move\n");
+      fprintf(stderr, "simscan[%ld]: spam could not fd_move\n", getppid());
     }
     exit_clean(EXIT_400);
   }
@@ -494,7 +500,7 @@ int main(int argc, char **argv)
     /* spam detected, refuse message */
     case 1:
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: DSPAM reported message as being SPAM\n");
+        fprintf(stderr, "simscan[%ld]: DSPAM reported message as being SPAM\n", getppid());
       }
       close(fd);
 
@@ -505,7 +511,7 @@ int main(int argc, char **argv)
 
 #ifdef ENABLE_DROPMSG
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: droping the message\n");
+        fprintf(stderr, "simscan[%ld]: droping the message\n", getppid());
       }
       exit_clean(EXIT_0);
       /* Drop the message, returning success to sender. */
@@ -523,7 +529,7 @@ int main(int argc, char **argv)
       /* dspam processed message and no spam detected */
     case 0:
         if ( DebugFlag > 0 ) {
-                fprintf(stderr, "simscan: DSPAM reported message as NOT being SPAM\n");
+                fprintf(stderr, "simscan[%ld]: DSPAM reported message as NOT being SPAM\n", getppid());
         }
       /* open the spam file read only */
       strncpy(message_name,spam_message_name,BUFFER_SIZE);
@@ -531,7 +537,7 @@ int main(int argc, char **argv)
       /* errors , return temporary error */
     default:
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: check_dspam had an error ret: %d\n", ret);
+        fprintf(stderr, "simscan[%ld]: check_dspam had an error ret: %d\n", getppid(), ret);
       }
       close(fd);
       exit_clean(EXIT_400);
@@ -545,7 +551,7 @@ int main(int argc, char **argv)
   /* break the email msg into mime parts */
   if ( run_ripmime() != 0 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: ripmime error\n");
+      fprintf(stderr, "simscan[%ld]: ripmime error\n", getppid());
     }
     exit_clean(EXIT_400);
   }
@@ -574,29 +580,29 @@ int main(int argc, char **argv)
   ret = check_clam();
   switch ( ret ) {
     case -2: 
-      if ( DebugFlag > 0 ) { fprintf(stderr, "simscan: clamdscan disabled\n"); }
+      if ( DebugFlag > 0 ) { fprintf(stderr, "simscan[%ld]: clamdscan disabled\n", getppid()); }
       break;
     case -1: 
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: fatal error executing clamdscan\n");
+        fprintf(stderr, "simscan[%ld]: fatal error executing clamdscan\n", getppid());
       }
       exit_clean(EXIT_400);
       break;
     case 1:
       FoundVirus=1;
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: clamdscan detected a virus\n");
+        fprintf(stderr, "simscan[%ld]: clamdscan detected a virus\n", getppid());
       }
       break;
     case 2:
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: fatal error executing clamdscan\n");
+        fprintf(stderr, "simscan[%ld]: fatal error executing clamdscan\n", getppid());
       }
       exit_clean(EXIT_400);
       break;
     default: 
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: normal clamdscan return code: %d\n", ret);
+        fprintf(stderr, "simscan[%ld]: normal clamdscan return code: %d\n", getppid(), ret);
       }
       break;
   }
@@ -607,22 +613,22 @@ int main(int argc, char **argv)
   switch(ret) {
     case 0:
       if ( DebugFlag > 0 ) {
-       fprintf(stderr, "simscan: trophie found no virus\n");
+       fprintf(stderr, "simscan[%ld]: trophie found no virus\n", getppid());
       }
       break;
     case 1:
       if ( DebugFlag > 0 ) {
-       fprintf(stderr, "simscan: trophie found virus\n");
+       fprintf(stderr, "simscan[%ld]: trophie found virus\n", getppid());
       }
       FoundVirus=1;
       break;
     case -1:
       /* disabled */
-      if ( DebugFlag > 0 ) { fprintf(stderr, "simscan: trophie disabled\n"); }
+      if ( DebugFlag > 0 ) { fprintf(stderr, "simscan[%ld]: trophie disabled\n", getppid()); }
       break;
     default:
       if ( DebugFlag > 0 ) {
-       fprintf(stderr, "simscan: some temp. error occured with trophie\n");
+       fprintf(stderr, "simscan[%ld]: some temp. error occured with trophie\n", getppid());
       }
       exit_clean(EXIT_400);
   }
@@ -656,7 +662,7 @@ int main(int argc, char **argv)
   /* re-open the file read only */
   if ( (fd = open(message_name, O_RDONLY)) == -1 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: spam can not open file: %s\n", message_name);
+      fprintf(stderr, "simscan[%ld]: spam can not open file: %s\n", getppid(), message_name);
     }
     exit_clean(EXIT_400);
   }
@@ -664,7 +670,7 @@ int main(int argc, char **argv)
   /* set the standard input to be the new file */
   if ( fd_move(0,fd)  == -1 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: spam could not fd_move\n");
+      fprintf(stderr, "simscan[%ld]: spam could not fd_move\n", getppid());
     }
     exit_clean(EXIT_400);
   }
@@ -682,7 +688,7 @@ int main(int argc, char **argv)
     /* spam detected, refuse message */
     case 1:
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: check_spam detected spam refuse message\n");
+        fprintf(stderr, "simscan[%ld]: check_spam detected spam refuse message\n", getppid());
       }
       close(fd);
 
@@ -693,7 +699,7 @@ int main(int argc, char **argv)
 	      
 #ifdef ENABLE_DROPMSG
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: droping the message\n");
+        fprintf(stderr, "simscan[%ld]: droping the message\n", getppid());
       }
       exit_clean(EXIT_0);
       /* Drop the message, returning success to sender. */
@@ -717,7 +723,7 @@ int main(int argc, char **argv)
       /* errors , return temporary error */
     default:
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: check_spam had an error ret: %d\n", ret);
+        fprintf(stderr, "simscan[%ld]: check_spam had an error ret: %d\n", getppid(), ret);
       }
       close(fd);
       exit_clean(EXIT_400); 
@@ -727,7 +733,7 @@ int main(int argc, char **argv)
   /* re-open the file read only */
   if ( (fd = open(message_name, O_RDONLY)) == -1 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: could not re-open file: %s\n", message_name);
+      fprintf(stderr, "simscan[%ld]: could not re-open file: %s\n", getppid(), message_name);
     }
     exit_clean(EXIT_400);
   }
@@ -735,7 +741,7 @@ int main(int argc, char **argv)
   /* re-open the address read only */
   if ( (fd_per = open(addr_name, O_RDONLY)) == -1 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: could not re-open address: %s\n", addr_name);
+      fprintf(stderr, "simscan[%ld]: could not re-open address: %s\n", getppid(), addr_name);
     }
     exit_clean(EXIT_400);
   }
@@ -743,12 +749,12 @@ int main(int argc, char **argv)
   /* set the standard input to be the new file */
   if ( fd_move(1,fd_per)  == -1 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: could not fd_move\n");
+      fprintf(stderr, "simscan[%ld]: could not fd_move\n", getppid());
     }
     exit_clean(EXIT_400);
   }
 
-  if ( DebugFlag > 0 ) fprintf(stderr, "simscan: done, execing qmail-queue\n");
+  if ( DebugFlag > 0 ) fprintf(stderr, "simscan[%ld]: done, execing qmail-queue\n", getppid());
 
   if ( pipe(pim) != 0 ) return(-1);
 
@@ -756,7 +762,7 @@ int main(int argc, char **argv)
   switch(pid = vfork()) {
     case -1:
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: error forking qmail-queue\n");
+        fprintf(stderr, "simscan[%ld]: error forking qmail-queue\n", getppid());
       }
       close(pim[0]);
       close(pim[1]);
@@ -765,20 +771,23 @@ int main(int argc, char **argv)
       close(pim[1]);
       dup2(pim[0],0);
       execl(qmail_queue, qmail_queue, (char *)NULL);
-      _exit(-1);
+      _exit(111);
   }
   close(pim[0]);
 
   #ifdef ENABLE_RECEIVED
   gettimeofday(&stop,(struct timezone *) 0);
   utime=SECS(stop)-SECS(start);
-  snprintf(buffer,sizeof(buffer),
-"Received: by simscan %s ppid: %d, pid: %d, t: %3.4fs\n         scanners:%s\n",
-    VERSION,getppid(),getpid(),utime,
-    strlen(runned_scanners) > 0 ? runned_scanners : "none");
+  tm = gmtime(&start.tv_sec);
+
+  snprintf(buffer,sizeof(buffer), "Received: (simscan %s ppid %ld pid %d t %.4fs)\n"
+           " (scanners: %s); %02d %s %04d %02d:%02d:%02d -0000\n",
+           VERSION, getppid(), getpid(), utime, runned_scanners[0] ? runned_scanners : "none",
+           tm->tm_mday,monthname[tm->tm_mon],tm->tm_year,tm->tm_hour,tm->tm_min,tm->tm_sec);
+
   if ( write(pim[1], buffer,strlen(buffer)) == -1 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: error writing received line\n");
+      fprintf(stderr, "simscan[%ld]: error writing received line\n", getppid());
     }
     exit_clean(EXIT_400);
   }
@@ -789,7 +798,7 @@ int main(int argc, char **argv)
     if ( write(pim[1], buffer,ret) == -1 ) {
       if ( DebugFlag > 0 ) {
         fprintf(stderr, 
-          "simscan: error writing msg to qmail-queue error: %d\n", errno);
+          "simscan[%ld]: error writing msg to qmail-queue error: %d\n", getppid(), errno);
       }
       exit_clean(EXIT_400);
     }
@@ -800,14 +809,14 @@ int main(int argc, char **argv)
   /* wait for qmail-queue to finish */
   if (waitpid(pid,&qstat, 0) == -1) { 
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: error forking qmail-queue (back in simscan)\n");
+      fprintf(stderr, "simscan[%ld]: error forking qmail-queue (back in simscan)\n", getppid());
     }
     exit_clean(EXIT_400);
   }
 
   /* hand the email to the qmail-queue */
   if ( DebugFlag > 0 ) {
-    fprintf(stderr, "simscan: qmail-queue exited %d\n", WEXITSTATUS(qstat));
+    fprintf(stderr, "simscan[%ld]: qmail-queue exited %d\n", getppid(), WEXITSTATUS(qstat));
   }
 
   /* remove the working files */
@@ -863,7 +872,7 @@ void add_run_scanner(char *key){
   char tmpbuf[256];
   char *data;
   
-  if ( DebugFlag > 1 ) fprintf(stderr, "simscan: cdb looking up version %s\n", key);  
+  if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: cdb looking up version %s\n", getppid(), key);
 
   snprintf(tmpbuf,sizeof(tmpbuf), "%s/simversions.cdb", CONTROLDIR);
   if ( (fd = open(tmpbuf, O_RDONLY)) == -1 ) {
@@ -881,8 +890,8 @@ void add_run_scanner(char *key){
   ret = read(fd,data,dlen);
   close(fd);
   snprintf(runned_scanners+strlen(runned_scanners),MAX_EMAIL-strlen(runned_scanners)," %s: %s",key,data);
-  if ( DebugFlag > 2 ) fprintf(stderr, "simscan: runned_scanners is %s\n", runned_scanners);  
-  if ( DebugFlag > 2 ) fprintf(stderr, "simscan: found %s\n", data);  
+  if ( DebugFlag > 2 ) fprintf(stderr, "simscan[%ld]: runned_scanners is %s\n", getppid(), runned_scanners);
+  if ( DebugFlag > 2 ) fprintf(stderr, "simscan[%ld]: found %s\n", getppid(), data);
 }
 #endif
 
@@ -942,7 +951,7 @@ int check_clam()
 #endif
 
   if ( DebugFlag > 0 ) {
-    fprintf(stderr, "simscan: calling clamdscan\n");
+    fprintf(stderr, "simscan[%ld]: calling clamdscan\n", getppid());
   }
 
   if ( pipe(pim) != 0 ) return(-1);
@@ -1075,14 +1084,14 @@ FILE *spamfs;
 
   if ( (spam_fd=open(spam_message_name, O_RDWR|O_CREAT|O_TRUNC,0644)) ==- 1) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: check_spam could not open spam file: %s\n",
-        spam_message_name);
+      fprintf(stderr, "simscan[%ld]: check_spam could not open spam file: %s\n",
+              getppid(), spam_message_name);
     }
     return(-1);
   }
 
   if ( DebugFlag > 0 ) {
-    fprintf(stderr, "simscan: calling dspam\n");
+    fprintf(stderr, "simscan[%ld]: calling dspam\n", getppid());
   }
 
   tmpbuf = malloc(strlen(DSPAM_ARGS)+1);
@@ -1123,7 +1132,7 @@ FILE *spamfs;
   dspam_args[i++] = NULL;
 
   if ( DebugFlag > 0 ) {
-    fprintf(stderr, "simscan: calling %s ", DSPAM);
+    fprintf(stderr, "simscan[%ld]: calling %s ", getppid(), DSPAM);
     i=0;
     while(dspam_args[i] != NULL){
       fprintf(stderr, " %s", dspam_args[i]);
@@ -1144,7 +1153,9 @@ FILE *spamfs;
         dup2(pim[1],1);
         close(pim[1]);
         i = execve(DSPAM, dspam_args, 0);
-	fprintf(stderr, "execve returned %d/%d\n", i, errno);
+        if ( DebugFlag > 0 ) {
+	        fprintf(stderr, "simscan[%ld]: execve returned %d/%d\n", getppid(), i, errno);
+        }
         _exit(-1);
     }
     close(pim[1]);
@@ -1189,7 +1200,7 @@ FILE *spamfs;
       if ( IsSpam == 1 ) {
         if (DebugFlag > 0) {
           fprintf(stderr,
-            "simscan: delivering spam because spam-passthru is defined in this domain\n");
+            "simscan[%ld]: delivering spam because spam-passthru is defined in this domain\n", getppid());
         }
         log_message("PASSTHRU", Subject,1);
       } else {
@@ -1269,14 +1280,14 @@ int check_spam()
   
   if ( (spam_fd=open(spam_message_name, O_RDWR|O_CREAT|O_TRUNC,0644)) ==- 1) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: check_spam could not open spam file: %s\n", 
-        spam_message_name);
+      fprintf(stderr, "simscan[%ld]: check_spam could not open spam file: %s\n",
+              getppid(), spam_message_name);
     }
     return(-1);
   }
 
   if ( DebugFlag > 0 ) {
-    fprintf(stderr, "simscan: calling spamc\n");
+    fprintf(stderr, "simscan[%ld]: calling spamc\n", getppid());
   }
 
   tmpbuf = malloc(strlen(SPAMC_ARGS)+1);
@@ -1302,7 +1313,7 @@ int check_spam()
   spamc_args[i] = NULL;
 
   if ( DebugFlag > 0 ) {
-    fprintf(stderr, "simscan: calling %s ", SPAMC);
+    fprintf(stderr, "simscan[%ld]: calling %s ", getppid(), SPAMC);
     i=0;
     while(spamc_args[i] != NULL){
       fprintf(stderr, " %s", spamc_args[i]);
@@ -1394,7 +1405,7 @@ int check_spam()
     if ( PerDomainSpamPassthru == 1) {
       if (( IsSpam == 1 ) && (DebugFlag > 0)){	    
         fprintf(stderr, 
-          "simscan: delivering spam because spam-passthru is defined in this domain\n");
+          "simscan[%ld]: delivering spam because spam-passthru is defined in this domain\n", getppid());
       }	
       log_message("PASSTHRU", Subject,1);
       return(0);
@@ -1557,14 +1568,14 @@ void quarantine_msg(char *message_name)
   strncat(quarantinefile, "/", sizeof(quarantinefile)-1);
   strncat(quarantinefile, message_name, sizeof(quarantinefile)-1);
   
-  fprintf(stderr, "simscan: Putting the message in quarantine: %s\n", 
-    quarantinefile);
+  fprintf(stderr, "simscan[%ld]: Putting the message in quarantine: %s\n", 
+          getppid(), quarantinefile);
   
   if ((fd_destino=open(quarantinefile, O_WRONLY|O_CREAT|O_TRUNC, 0644)) == -1) {
     if ( DebugFlag > 0 ) {
       fprintf(stderr, 
-        "simscan: error opening quarantine file %s errnostr: %d\n", 
-        message_name, errno);
+              "simscan[%ld]: error opening quarantine file %s errnostr: %d\n", 
+              getppid(), message_name, errno);
     }
     return;
   }
@@ -1573,7 +1584,7 @@ void quarantine_msg(char *message_name)
   while ((ret = read(fd_origem, buffer, sizeof(buffer))) > 0) {
     if (write(fd_destino, buffer, ret) == -1) {
       if (DebugFlag > 0) {
-        fprintf(stderr, "simscan: error writing msg error: %d\n", errno);
+        fprintf(stderr, "simscan[%ld]: error writing msg error: %d\n", getppid(), errno);
       }
       close(fd_origem);
       close(fd_destino);
@@ -1583,20 +1594,20 @@ void quarantine_msg(char *message_name)
   
   if (close(fd_origem) == -1) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: error closing original mail file errno: %d\n", 
-        errno);
+      fprintf(stderr, "simscan[%ld]: error closing original mail file errno: %d\n", 
+              getppid(), errno);
     }
     return;
   }
   
   if ( close(fd_destino) == -1 ) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: error closing quarantine file errno: %d\n", 
-        errno);
+      fprintf(stderr, "simscan[%ld]: error closing quarantine file errno: %d\n", 
+              getppid(), errno);
     }
     return;
   } else {
-    fprintf(stderr, "simscan: Message recorded in quarantine successful\n");
+    fprintf(stderr, "simscan[%ld]: Message recorded in quarantine successful\n", getppid());
   }
   return;
 }
@@ -1610,7 +1621,7 @@ void exit_clean( int error_code )
 {
   remove_files(workdir);
   if ( DebugFlag > 0 ) {
-    fprintf(stderr, "simscan: exit error code: %d\n", error_code); 
+    fprintf(stderr, "simscan[%ld]: exit error code: %d\n", getppid(), error_code); 
   }
   _exit(error_code);
 }
@@ -1657,11 +1668,11 @@ void add_attach (char *list)
  char *found;
   
   MaxAttach = 0;
-  if ( DebugFlag > 3 ) fprintf(stderr, "simscan: add_attach called with %s\n", list);  
+  if ( DebugFlag > 3 ) fprintf(stderr, "simscan[%ld]: add_attach called with %s\n", getppid(), list);  
   while( ( found = strsep(&list,":") ) != NULL) {
     strncpy(bk_attachments[MaxAttach], found, strlen(found));
     if ( DebugFlag > 1 ) {
-      fprintf(stderr, "simscan: %s is attachment number %d\n", 
+      fprintf(stderr, "simscan[%ld]: %s is attachment number %d\n", getppid(), 
       bk_attachments[MaxAttach], MaxAttach);  
     }
     ++MaxAttach;
@@ -1692,7 +1703,7 @@ int check_attach()
     }
 
     for(i=0;i<MaxAttach;++i) {
-      if ( DebugFlag > 2 ) fprintf(stderr, "simscan: checking attachment %s against %s\n", mydirent->d_name, bk_attachments[i] );  
+      if ( DebugFlag > 2 ) fprintf(stderr, "simscan[%ld]: checking attachment %s against %s\n", getppid(), mydirent->d_name, bk_attachments[i] );  
       lowerit(mydirent->d_name); 
       if ( str_rstr(mydirent->d_name,bk_attachments[i]) == 0 ) {
         strncpy(AttachName, mydirent->d_name, sizeof(AttachName)-1); 
@@ -1752,7 +1763,7 @@ void per_domain_lookup( char *key )
   // switch the domain to lowercase
   lowerit(key);
 
-  if ( DebugFlag > 1 ) fprintf(stderr, "simscan: cdb looking up %s\n", key);  
+  if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: cdb looking up %s\n", getppid(), key);
 
   snprintf(tmpbuf,sizeof(tmpbuf), "%s/simcontrol.cdb", CONTROLDIR);
   if ( (fd = open(tmpbuf, O_RDONLY)) == -1 ) {
@@ -1770,12 +1781,12 @@ void per_domain_lookup( char *key )
   ret = read(fd,data,dlen);
   close(fd);
   
-  if ( DebugFlag > 1 ) fprintf(stderr, "simscan: cdb for %s found %s\n", key, data); 
+  if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: cdb for %s found %s\n", getppid(), key, data);
 
   parm = strsep(&data, PER_DOMAIN_TOKENS);
   if ( parm != NULL ) val = strsep(&data, PER_DOMAIN_TOKENS);
   while ( parm != NULL && val != NULL) {
-    if ( DebugFlag > 1 ) fprintf(stderr, "simscan: pelookup %s = %s\n", parm, val);  
+    if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: pelookup %s = %s\n", getppid(), parm, val);
     if ( strcasecmp(parm,"clam") == 0 ) {
       if ( strcasecmp(val, "yes") == 0 ) {
         PerDomainClam = 1; 
@@ -1790,12 +1801,12 @@ void per_domain_lookup( char *key )
       }
     } else if ( strcasecmp(parm,"qmailqueue") == 0 ) {
       qmail_queue = strdup(val);
-      if ( DebugFlag > 1 ) fprintf(stderr, "simscan: qmailqueue = %s\n", val);
+      if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: qmailqueue = %s\n", getppid(), val);
 
 #ifdef ENABLE_SPAM
     } else if ( strcasecmp(parm,"spamuser") == 0 ) {
       strncpy(spamuser,val,BUFFER_SIZE);
-      if ( DebugFlag > 1 ) fprintf(stderr, "simscan: spamuser = %s\n", spamuser);
+      if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: spamuser = %s\n", getppid(), spamuser);
 #endif
 
     } else if ( strcasecmp(parm,"trophie") == 0 ) {
@@ -1804,22 +1815,22 @@ void per_domain_lookup( char *key )
       } else if ( strcasecmp(val, "no") == 0 ) {
         PerDomainTrophie = 0; 
       }
-      if ( DebugFlag > 1 ) fprintf(stderr, "simscan: trophie = %s/%d\n", val,PerDomainTrophie);  
+      if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: trophie = %s/%d\n", getppid(), val, PerDomainTrophie);
 #ifdef ENABLE_REGEX
     } else if ( strcasecmp(parm,"regex") == 0 ) {
-      if ( DebugFlag > 1 ) fprintf(stderr, "simscan: regex flag %s = %s\n", parm, val);  
+      if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: regex flag %s = %s\n", getppid(), parm, val);
       init_regex(val);
 #endif
 #ifdef ENABLE_ATTACH
     } else if ( strcasecmp(parm,"attach") == 0 ) {
-      if ( DebugFlag > 1 ) fprintf(stderr, "simscan: attachment flag %s = %s\n", parm, val);  
+      if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: attachment flag %s = %s\n", getppid(), parm, val);
       add_attach(val);
 #endif
 #ifdef SPAM_HITS
     } else if ( strcasecmp(parm,"spam_hits") == 0 ) {
       PerDomainHits = 1;
       PDHits = atof(val);
-      if ( DebugFlag > 1 ) fprintf(stderr, "simscan: Per Domain Hits set to : %f\n", PDHits);
+      if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: Per Domain Hits set to : %f\n", getppid(), PDHits);
 #endif
 #ifdef ENABLE_SPAM_PASSTHRU
     } else if ( strcasecmp(parm,"spam_passthru") == 0) {
@@ -1828,10 +1839,10 @@ void per_domain_lookup( char *key )
       } else if ( strcasecmp(val, "no") == 0 ) {
         PerDomainSpamPassthru = 0;
       }
-      if ( DebugFlag > 1 ) fprintf(stderr, "simscan: spampassthru = %s/%d\n", val,PerDomainSpamPassthru);
+      if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: spampassthru = %s/%d\n", getppid(), val, PerDomainSpamPassthru);
 #endif   
     } else {
-      if ( DebugFlag > 1 ) fprintf(stderr, "simscan: unimplemented flag %s = %s\n", parm, val);  
+      if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: unimplemented flag %s = %s\n", getppid(), parm, val);
     }
     parm = strsep(&data, PER_DOMAIN_TOKENS);
     if ( parm != NULL ) val = strsep(&data, PER_DOMAIN_TOKENS);
@@ -1864,25 +1875,25 @@ void per_domain_email_lookup (char *email) {
   int i,keyIndex=0;
 
   *localtmp='\0';
-  if ( DebugFlag > 1 ) fprintf(stderr, "simscan: pelookup: called with %s\n", email);  
+  if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: pelookup: called with %s\n", getppid(), email);
 
   /* first we lookup the domain */
   
   for(tmpstr = email; tmpstr!=NULL && *tmpstr!='@' && keyIndex < MAX_EMAIL; ++tmpstr ){++keyIndex;}
   if (*tmpstr != '@') {
-    if ( DebugFlag > 1 ) fprintf(stderr, "simscan: WARN: no domain part found! %s\n", email);  
+    if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: WARN: no domain part found! %s\n", getppid(), email);
     *domain='\0';
   } else {
     keyIndex++;
     strncpy(domain,email+keyIndex,sizeof(domain)-keyIndex-1); 
-    if ( DebugFlag > 1 ) fprintf(stderr, "simscan: pelookup: domain is %s\n", domain);  
+    if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: pelookup: domain is %s\n", getppid(), domain);
     per_domain_lookup( domain ); 
   }
  
   strncpy(local,email, sizeof(local)); 
   for(l_ptr=local; l_ptr!=NULL && *l_ptr!='@' && *l_ptr!='\0'; ++l_ptr );
   *l_ptr='\0';
-  if ( DebugFlag > 1 ) fprintf(stderr, "simscan: pelookup: local part is %s\n", local);  
+  if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: pelookup: local part is %s\n", getppid(), local);
 
   /* then we check if the local part is an extended address (bla-ext)
    * we have to fill an array, as per_domain_lookup uses strtok again
@@ -1890,7 +1901,7 @@ void per_domain_email_lookup (char *email) {
   l_ptr = local;
   keyIndex=0;
   while( (lpart = strsep(&l_ptr,MAIL_EXT_TOKENS) )!= NULL && keyIndex < MAX_RCPT_TO) {
-    if ( DebugFlag > 2 ) fprintf(stderr, "simscan: lpart: local part is *%s*\n", localtmp);
+    if ( DebugFlag > 2 ) fprintf(stderr, "simscan[%ld]: lpart: local part is *%s*\n", getppid(), localtmp);
     strncat(localtmp,lpart,MAX_EMAIL-strlen(localtmp)-strlen(lpart)-1);
     sprintf(toScan[keyIndex], "%s@%s", localtmp,domain);
     strncat(localtmp,"-",MAX_EMAIL-strlen(localtmp)-2);
@@ -2009,7 +2020,7 @@ int is_spam(char *spambuf)
        if ( tmpstr == NULL ) {
          if ( DebugFlag > 1 ) {
            fprintf(stderr,
-           "simscan: neither hits= or score= in X-Spam-Status header\n");
+           "simscan[%ld]: neither hits= or score= in X-Spam-Status header\n", getppid());
          }
          return(0);
        }
@@ -2020,7 +2031,7 @@ int is_spam(char *spambuf)
     if ( tmpstr == NULL ) {
        if ( DebugFlag > 1 ) {
          fprintf(stderr,
-           "simscan: neither hits= or score= in X-Spam-Status header\n");
+           "simscan[%ld]: neither hits= or score= in X-Spam-Status header\n", getppid());
        }
     }
     memset(hits,0,sizeof(hits));
@@ -2061,19 +2072,19 @@ int check_regex () {
   int match=0;
 
   for (i=0;i<numRegex;i++){
-      if ( DebugFlag > 1 ) { fprintf(stderr, "simscan: compiling regex %d (%s)\n", i,regexs[i]);  }
+      if ( DebugFlag > 1 ) { fprintf(stderr, "simscan[%ld]: compiling regex %d (%s)\n", getppid(), i,regexs[i]);  }
       comp_regexs[i]=pcre_compile(regexs[i], 0, &error, &erroffset, NULL);    
       if (comp_regexs[i] == NULL){
-        if ( DebugFlag > 0 ) { fprintf(stderr, "simscan: error compiling regex %d (%s): %s\n", i,regexs[i],error);  }
+        if ( DebugFlag > 0 ) { fprintf(stderr, "simscan[%ld]: error compiling regex %d (%s): %s\n", getppid(), i,regexs[i],error);  }
       }
   }
   
-  if ( DebugFlag > 1 ) { fprintf(stderr, "simscan: regex opening message file %s\n", message_name);  }
+  if ( DebugFlag > 1 ) { fprintf(stderr, "simscan[%ld]: regex opening message file %s\n", getppid(), message_name);  }
   if ( (regex_fd=fopen(message_name, "r")) == NULL ) {
-    if ( DebugFlag > 1 ) { fprintf(stderr, "simscan: regex error opening message file %s\n", message_name);  }
+    if ( DebugFlag > 1 ) { fprintf(stderr, "simscan[%ld]: regex error opening message file %s\n", getppid(), message_name);  }
     retvalue=1;
   } else {
-    if ( DebugFlag > 1 ) { fprintf(stderr, "simscan: regex reading message\n");  }
+    if ( DebugFlag > 1 ) { fprintf(stderr, "simscan[%ld]: regex reading message\n", getppid());  }
     while(!feof(regex_fd) && !match){
       /* read line and match it */
       fgets(line, MAX_REGEX_LINE, regex_fd);
@@ -2082,13 +2093,13 @@ int check_regex () {
           if (comp_regexs[i] != NULL){
             rc=pcre_exec(comp_regexs[i], NULL, line, strlen(line), 0, 0, NULL,0);
             if (rc >= 0){
-              if ( DebugFlag > 0 ) { fprintf(stderr, "simscan: regex match %d (%s) matches %s\n", i, regexs[i],line);  };
+              if ( DebugFlag > 0 ) { fprintf(stderr, "simscan[%ld]: regex match %d (%s) matches %s\n", getppid(), i, regexs[i],line);  };
               match=1;
               retvalue=2;
-              snprintf(VirusName,BUFFER_SIZE,"#%d",i);
+              snprintf(VirusName,BUFFER_SIZE,"#%ld",i);
             } else if (rc < -1){
               /* -1 means no match, but all other errors are ``strange'' */
-              if ( DebugFlag > 0 ) { fprintf(stderr, "simscan: regex %d (%s) error %d\n", i, regexs[i],rc);  };
+              if ( DebugFlag > 0 ) { fprintf(stderr, "simscan[%ld]: regex %d (%s) error %d\n", getppid(), i, regexs[i],rc);  };
             }
           }
         }
@@ -2096,7 +2107,7 @@ int check_regex () {
     }
   }
   
-  if ( DebugFlag > 0 ) { fprintf(stderr, "simscan: regex freeing memory\n");  };
+  if ( DebugFlag > 0 ) { fprintf(stderr, "simscan[%ld]: regex freeing memory\n", getppid());  };
   for (i=0;i<numRegex;i++){
     pcre_free(comp_regexs[i]);
   }
@@ -2111,10 +2122,10 @@ int check_regex () {
 void init_regex (char *list) {
   int len=0;
   char *found;
-  if ( DebugFlag > 3 ) fprintf(stderr, "simscan: init_regex called with %s\n", list);  
+  if ( DebugFlag > 3 ) fprintf(stderr, "simscan[%ld]: init_regex called with %s\n", getppid(), list);  
   while( ( found = strsep(&list,":") ) != NULL) {
       strncpy(regexs[numRegex], found, strlen(found));
-      if ( DebugFlag > 1 ) fprintf(stderr, "simscan: regex %d is %s\n", numRegex,regexs[numRegex]);  
+      if ( DebugFlag > 1 ) fprintf(stderr, "simscan[%ld]: regex %d is %s\n", getppid(), numRegex,regexs[numRegex]);  
       ++numRegex;
   }
 }
@@ -2142,7 +2153,7 @@ int check_trophie() {
 #endif
       
   if ( DebugFlag > 1 ) {
-    fprintf(stderr, "simscan: trophie starting!\n");  
+    fprintf(stderr, "simscan[%ld]: trophie starting!\n", getppid());  
   }
 
   /* Create socket */
@@ -2164,7 +2175,7 @@ int check_trophie() {
   strncat(command, "\n", sizeof(command)-1);
 
   if ( DebugFlag > 1 ) {
-    fprintf(stderr, "simscan: sending command [%s]\n",command);  
+    fprintf(stderr, "simscan[%ld]: sending command [%s]\n", getppid(),command);  
   }
 
   if (retvalue == 0 && write(sock, command, strlen(command)) < 0 ) {
@@ -2179,31 +2190,31 @@ int check_trophie() {
     if (buffer[0] == '1') {
       strncpy(VirusName,buffer+2,sizeof(VirusName)); 
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: trophie, virus found [%s]\n",VirusName);  
+        fprintf(stderr, "simscan[%ld]: trophie, virus found [%s]\n", getppid(),VirusName);  
       }
       retvalue=1;
     } else if (!strncmp(buffer, "-1", 2)) {
-      if ( DebugFlag > 0 ) fprintf(stderr, "simscan: trophie, error scanning file!\n"); 
+      if ( DebugFlag > 0 ) fprintf(stderr, "simscan[%ld]: trophie, error scanning file!\n", getppid()); 
       retvalue=5;
     } else if (!strncmp(buffer, "-2", 2)) {
-      if ( DebugFlag > 0 ) fprintf(stderr, "simscan: trophie, error scanning file!\n"); 
+      if ( DebugFlag > 0 ) fprintf(stderr, "simscan[%ld]: trophie, error scanning file!\n", getppid()); 
       retvalue=5;
     } else {
       if ( DebugFlag > 1 ) {
-        fprintf(stderr, "simscan: trophie, file clean\n");  
+        fprintf(stderr, "simscan[%ld]: trophie, file clean\n", getppid());
       }
       retvalue=0;
     }
   } else if (retvalue == 0) {
     if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan: trophie, error reading from socket\n");  
+      fprintf(stderr, "simscan[%ld]: trophie, error reading from socket\n", getppid());
     }
     retvalue=4;
   }
   
   close(sock);
   if ( DebugFlag > 1 ) {
-    fprintf(stderr, "simscan: trophie ending, retvalue = %d\n", retvalue);  
+    fprintf(stderr, "simscan[%ld]: trophie ending, retvalue = %d\n", getppid(), retvalue);
   }
 
 #ifdef ENABLE_RECEIVED
@@ -2292,16 +2303,16 @@ void log_message( char *state, char *subject, int spam )
 #ifdef ENABLE_SPAM
     if ( PerDomainHits == 1 ) reqhits = PDHits;
     else reqhits = ReqHits;
-    fprintf(stderr, "simscan:[%d]:%s (%.2f/%.2f):%3.4fs:%s:%s:%s:%s",
+    fprintf(stderr, "simscan:[%ld]:%s (%.2f/%.2f):%3.4fs:%s:%s:%s:%s",
       getppid(), state, SpamHits,reqhits, utime, subject,
       getenv("TCPREMOTEIP"), MailFrom, RcptTo[0]);
 #else
-    fprintf(stderr, "simscan:[%d]:%s (%.4f/%.4f):%3.4fs:%s:%s:%s:%s",
+    fprintf(stderr, "simscan:[%ld]:%s (%.4f/%.4f):%3.4fs:%s:%s:%s:%s",
       getppid(), state, SpamProbability,DSpamConf, utime, subject,
       getenv("TCPREMOTEIP"), MailFrom, RcptTo[0]);
 #endif
   } else {
-    fprintf(stderr, "simscan:[%d]:%s:%3.4fs:%s:%s:%s:%s",
+    fprintf(stderr, "simscan:[%ld]:%s:%3.4fs:%s:%s:%s:%s",
       getppid(),state,utime,subject,getenv("TCPREMOTEIP"),MailFrom,RcptTo[0]);
   }
 
