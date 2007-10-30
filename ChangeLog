@@ -1,3 +1,9 @@
+10/29/07 Jason Frisvold
+         - Support daily and main .inc and .cvd files (John Simpson)
+         - Fixed a few compiler warnings (Jason Frisvold)
+         - simcontrol lookups should be lowercase (Jason Frisvold)
+         - lowercase all strings in the simcontrol.cdb file (Jason Frisvold)
+
 10/29/07 Ken Jones
          - release version 1.4.0 with p0f code moved to qmail-smtpd
 

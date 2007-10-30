@@ -1592,7 +1592,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=simscan
- VERSION=1.4.0
+ VERSION=1.4.1
 
 
 cat >>confdefs.h <<_ACEOF
@@ -4683,6 +4683,10 @@ fi;
         for f in "$CLAMAV_DB" /usr/local/share/clamav /var/lib/clamav
         do
           if test -f "$f/daily.cvd"
+          then
+            clamavdb=$f
+            break
+          elif test -f "$f/daily.inc/daily.info"
           then
             clamavdb=$f
             break

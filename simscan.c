@@ -1,5 +1,5 @@
 /*
- * $Id: simscan.c,v 1.1 2007/10/29 16:59:34 xen0phage Exp $
+ * $Id: simscan.c,v 1.2 2007/10/30 02:04:34 xen0phage Exp $
  * Copyright (C) 2004-2005 Inter7 Internet Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -764,7 +764,7 @@ int main(int argc, char **argv)
     case 0:
       close(pim[1]);
       dup2(pim[0],0);
-      execl(qmail_queue, qmail_queue, 0);
+      execl(qmail_queue, qmail_queue, (char *)NULL);
       _exit(-1);
   }
   close(pim[0]);
@@ -1747,8 +1747,11 @@ void per_domain_lookup( char *key )
  char tmpbuf[256];
  char *data;
  char *parm;
- char *val;
+ char *val = NULL;
   
+  // switch the domain to lowercase
+  lowerit(key);
+
   if ( DebugFlag > 1 ) fprintf(stderr, "simscan: cdb looking up %s\n", key);  
 
   snprintf(tmpbuf,sizeof(tmpbuf), "%s/simcontrol.cdb", CONTROLDIR);
@@ -1772,7 +1775,7 @@ void per_domain_lookup( char *key )
   parm = strsep(&data, PER_DOMAIN_TOKENS);
   if ( parm != NULL ) val = strsep(&data, PER_DOMAIN_TOKENS);
   while ( parm != NULL && val != NULL) {
-    if ( DebugFlag > 1 ) fprintf(stderr, "simscan: pelookup %s = %s\n", parm,val);  
+    if ( DebugFlag > 1 ) fprintf(stderr, "simscan: pelookup %s = %s\n", parm, val);  
     if ( strcasecmp(parm,"clam") == 0 ) {
       if ( strcasecmp(val, "yes") == 0 ) {
         PerDomainClam = 1; 

@@ -1,5 +1,5 @@
 /*
- * $Id: simscanmk.c,v 1.1 2007/10/29 16:59:34 xen0phage Exp $
+ * $Id: simscanmk.c,v 1.2 2007/10/30 02:04:34 xen0phage Exp $
  * Copyright (C) 2004-2005 Inter7 Internet Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -34,6 +34,7 @@
 #include <resolv.h>
 #include <errno.h>
 #include <pthread.h>
+#include <ctype.h>
 #include "config.h"
 
 #include "cdb/cdb_make.h"
@@ -53,6 +54,7 @@ static struct cdb_make c;
 #define BUILD_CLAM 1
 #define BUILD_SPAM 2
 
+void lowerit(char *input);
 int make_cdb();
 void usage();
 void get_options(int argc,char **argv);
@@ -80,6 +82,16 @@ int main( int argc, char **argv)
   }
 #endif
   exit(0);
+}
+
+void lowerit(char *input)
+{
+  while(*input!=0) {
+    if ( isupper((u_char)*input) ) {
+      *input = (u_char)tolower((u_char)*input);
+    }
+    ++input;
+  }
 }
 
 #ifdef ENABLE_RECEIVED
@@ -276,8 +288,12 @@ int make_version_cdb() {
     waitpid(pid,&rmstat,0);
     close(pin[0]); close(pin[1]);
   }
-  strncpy(dbpath,CLAMAVDBPATH,MAX_DATA);
-  strcat(dbpath,"/main.cvd");
+  strncpy(dbpath,CLAMAVDBPATH,MAX_LINE);
+  strncat(dbpath,"/main.inc/main.info",(MAX_LINE-sizeof(CLAMAVDBPATH)-1));
+  if(access(dbpath,F_OK)) {
+    strncpy(dbpath,CLAMAVDBPATH,MAX_LINE);
+    strncat(dbpath,"/main.cvd",(MAX_LINE-sizeof(CLAMAVDBPATH)-1));
+  }
   strcat(data,"m:");
   if (pipe(pin)){
     printf("error opening pipe for sigtool\n");
@@ -306,8 +322,12 @@ int make_version_cdb() {
     }
     waitpid(pid,&rmstat,0);
     close(pin[0]); close(pin[1]);
-    strncpy(dbpath,CLAMAVDBPATH,MAX_DATA);
-    strcat(dbpath,"/daily.cvd");
+    strncpy(dbpath,CLAMAVDBPATH,MAX_LINE);
+    strncat(dbpath,"/daily.inc/daily.info",(MAX_LINE-sizeof(CLAMAVDBPATH)-1));
+    if(access(dbpath,F_OK)) {
+      strncpy(dbpath,CLAMAVDBPATH,MAX_LINE);
+      strncat(dbpath,"/daily.cvd",(MAX_LINE-sizeof(CLAMAVDBPATH)-1));
+    }
     if (pipe(pin)){
      printf("error opening pipe for sigtool\n");
     }
@@ -395,6 +415,9 @@ int make_cdb()
       key = strtok(input,TOKENS);
       if ( key == NULL ) continue;
       data = strtok(NULL,"\r\n");
+      // Lowercase all characters
+      lowerit(key);
+      lowerit(data);
     }
 
     if ( data == NULL ) data="";
