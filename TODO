@@ -1,3 +1,23 @@
+Todo List - Friz
+
+Logging of message-id along with other information currently logged
+
+Ensure each exit point has an appropriate message in the log
+
+Another request: parameters for calling spamd could be placed in a
+environment variable (or inside simcontrol). Actually we need to
+recompile if there is any change.
+
+enable/disable spam-auth-user via simcontrol?
+
+Bogofilter support
+
+CRM114 support
+
+-------------------------------------------------------------------------------
+
+Todo List - Previous
+
 revamp "on/off" features for more granularity
 
 investigate ways of parsing headers from spamassassin for spamassassin 3.0
