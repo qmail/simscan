@@ -1,3 +1,13 @@
+11/12/07 Jason Frisvold
+         - Improvement patch (Tom Collins)
+         - - Clamdscan scans the message file instead of the message file and
+         -   attachment
+         - - Don't pass messages over 250k to spamassassin
+         - - Spam scanning before virus scanning
+         - - Lowercase FROM and TO addresses
+         - - write spam_fd before calling is_spam()
+         - - fix str_rstr() call to require complete match
+
 10/30/07 Jason Frisvold
          - simscan directory umask fix (John Simpson)
          - band-aid simscanmk NFS timing issue on solaris - Tom Collins

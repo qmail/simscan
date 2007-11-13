@@ -1,5 +1,5 @@
 /*
- * $Id: simscan.c,v 1.5 2007/10/30 18:12:43 xen0phage Exp $
+ * $Id: simscan.c,v 1.6 2007/11/13 19:10:13 xen0phage Exp $
  * Copyright (C) 2004-2005 Inter7 Internet Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -46,7 +46,6 @@
 #define EXIT_400  71  /* temporary refusal to accept */
 #define EXIT_500  31  /* permenent refusal to accept message SMTP: 5XX code */
 #define EXIT_MSG  82  /* exit with custom error message */ 
-#define EXIT_54   54  /* Unable to read the message or envelope. */
 #define EXIT_91   91  /* Envelope format error. */
 
 
@@ -88,9 +87,6 @@ char *dspam_args[MAX_DSPAM_ARGS];
 #define MAX_SPAMC_ARGS 20
 char *spamc_args[MAX_SPAMC_ARGS];
 
-/* --stdout is required for reading virus names */
-char *viri_args[] = { "clamdscan", "--stdout", NULL };
-
 /* Global work buffers */
 #define BUFFER_SIZE 2048
 char buffer[BUFFER_SIZE];
@@ -106,6 +102,9 @@ int remove_files(char *dir);
 int str_rstr(register char *h,register char *n);
 char *replace(char *string, char *oldpiece, char *newpiece);
 int DebugFlag = 0;
+
+/* --stdout is required for reading virus names */
+char *viri_args[] = { "clamdscan", "--stdout", message_name, NULL };
 
 /* To/From address processing globals */
 #define MAX_RCPT_TO 255
@@ -246,6 +245,7 @@ int main(int argc, char **argv)
  int ret;
  int fd_per;
  size_t tmpread;
+ size_t msgsize;
  char *tmpstr;
  int pim[2];
  int qstat;
@@ -320,7 +320,9 @@ int main(int argc, char **argv)
   }
 
   /* read the email into the new file */
+  msgsize = 0;
   while( (ret = read(0, buffer, sizeof(buffer))) > 0 ) {
+    msgsize += ret;
     if ( write(fd, buffer,ret) == -1 ) {
       if ( DebugFlag > 0 ) {
         fprintf(stderr, "simscan:[%d]: error writing msg error: %d\n", getppid(), errno);
@@ -388,6 +390,7 @@ int main(int argc, char **argv)
            exit_clean(EXIT_91);
         }
         strncpy(MailFrom, &addr_buff[1], sizeof(MailFrom)-1);
+        lowerit(MailFrom);
         gotfrom = 1;
         if ( DebugFlag > 3 )
           fprintf(stderr, "simscan:[%d]: F envelope is %s\n", getppid(), MailFrom);
@@ -395,6 +398,7 @@ int main(int argc, char **argv)
      if (addr_buff[0] == 'T') {
         if (MaxRcptTo<MAX_RCPT_TO) {
            strncpy(RcptTo[MaxRcptTo], &addr_buff[1], MAX_EMAIL-1);
+           lowerit(RcptTo[MaxRcptTo]);
            gotrcpt = 1;
            MaxRcptTo ++;
            if ( DebugFlag > 3 )
@@ -408,7 +412,7 @@ int main(int argc, char **argv)
   if (tmpread <= 0 && errno != 0) {
      // error or unexpected EOF
      close (fd_per);
-     exit_clean(EXIT_54);
+     exit_clean(EXIT_454);
   }
 
 
@@ -440,12 +444,6 @@ int main(int argc, char **argv)
     }
   }
 #endif
-
-
-  /* get the mail from value 
-  memset(MailFrom,0,sizeof(MailFrom));
-  strncpy(MailFrom, &addr_buff[1], sizeof(MailFrom)-1);
-  */
 
 #ifdef ENABLE_PER_DOMAIN
   /* setup the per domain values for checking virus or spam */
@@ -547,7 +545,84 @@ int main(int argc, char **argv)
 
 #endif
 
+#ifdef ENABLE_SPAM
+if (msgsize >= 250000) {
+  if ( DebugFlag > 0 ) {
+    fprintf(stderr, "simscan: big file (%lu bytes); skipping SpamAssassin\n",
+      (unsigned long) msgsize);
+  }
+} else {
+  /* re-open the file read only */
+  if ( (fd = open(message_name, O_RDONLY)) == -1 ) {
+    if ( DebugFlag > 0 ) {
+      fprintf(stderr, "simscan: spam can not open file: %s\n", message_name);
+    }
+    exit_clean(EXIT_400);
+  }
 
+  /* set the standard input to be the new file */
+  if ( fd_move(0,fd)  == -1 ) {
+    if ( DebugFlag > 0 ) {
+      fprintf(stderr, "simscan: spam could not fd_move\n");
+    }
+    exit_clean(EXIT_400);
+  }
+
+  /* optionally check for spam with spamassassin */
+  snprintf(spam_message_name, sizeof(spam_message_name), "spamc.msg.%s", unique_ext);
+  ret = check_spam();
+  switch ( ret ) {
+    /* spamassassin not enabled for this domain */
+    case 2:
+      /* re-open the message file file read only */
+      /* do nothing, message_name gets openend in any case*/
+      break;
+
+    /* spam detected, refuse message */
+    case 1:
+      if ( DebugFlag > 0 ) {
+        fprintf(stderr, "simscan: check_spam detected spam refuse message\n");
+      }
+      close(fd);
+
+#ifdef QUARANTINEDIR
+      quarantine_msg(message_name);
+      /* put message in quarantine */
+#endif
+
+#ifdef ENABLE_DROPMSG
+      if ( DebugFlag > 0 ) {
+        fprintf(stderr, "simscan: droping the message\n");
+      }
+      exit_clean(EXIT_0);
+      /* Drop the message, returning success to sender. */
+#else
+ #ifdef ENABLE_CUSTOM_SMTP_REJECT
+      snprintf(RejectMsg,sizeof(RejectMsg),
+       "DYour email is considered spam (%.2f spam-hits)", SpamHits );
+      write(4,RejectMsg, strlen(RejectMsg));
+      exit_clean(EXIT_MSG);
+ #else
+      exit_clean(EXIT_500);
+ #endif
+#endif
+      break;
+
+      /* spamassassin processed message and no spam detected */
+    case 0:
+      /* open the spam file read only */
+      strncpy(message_name,spam_message_name,BUFFER_SIZE);
+      break;
+      /* errors , return temporary error */
+    default:
+      if ( DebugFlag > 0 ) {
+        fprintf(stderr, "simscan: check_spam had an error ret: %d\n", ret);
+      }
+      close(fd);
+      exit_clean(EXIT_400);
+  }
+}
+#endif
 
 #if (VIRUSSCANNER==1 || ENABLE_ATTACH==1) && DO_RIPMIME==1
   /* break the email msg into mime parts */
@@ -575,7 +650,6 @@ int main(int argc, char **argv)
 #endif
   }
 #endif
-
 
 #ifdef ENABLE_CLAMAV
   /* Run ClamAntiVirus, exit on errors */ 
@@ -657,78 +731,6 @@ int main(int argc, char **argv)
     exit_clean(EXIT_500); 
  #endif
 #endif
-  }
-#endif
-
-#ifdef ENABLE_SPAM
-  /* re-open the file read only */
-  if ( (fd = open(message_name, O_RDONLY)) == -1 ) {
-    if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan:[%d]: spam can not open file: %s\n", getppid(), message_name);
-    }
-    exit_clean(EXIT_400);
-  }
-
-  /* set the standard input to be the new file */
-  if ( fd_move(0,fd)  == -1 ) {
-    if ( DebugFlag > 0 ) {
-      fprintf(stderr, "simscan:[%d]: spam could not fd_move\n", getppid());
-    }
-    exit_clean(EXIT_400);
-  }
-
-  /* optionally check for spam with spamassassin */ 
-  snprintf(spam_message_name, sizeof(spam_message_name), "spamc.msg.%s", unique_ext);
-  ret = check_spam();
-  switch ( ret ) {
-    /* spamassassin not enabled for this domain */
-    case 2:
-      /* re-open the message file file read only */
-      /* do nothing, message_name gets openend in any case*/
-      break;
-
-    /* spam detected, refuse message */
-    case 1:
-      if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan:[%d]: check_spam detected spam refuse message\n", getppid());
-      }
-      close(fd);
-
-#ifdef QUARANTINEDIR
-      quarantine_msg(message_name);
-      /* put message in quarantine */
-#endif
-	      
-#ifdef ENABLE_DROPMSG
-      if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan:[%d]: droping the message\n", getppid());
-      }
-      exit_clean(EXIT_0);
-      /* Drop the message, returning success to sender. */
-#else			
- #ifdef ENABLE_CUSTOM_SMTP_REJECT
-      snprintf(RejectMsg,sizeof(RejectMsg), 
-       "DYour email is considered spam (%.2f spam-hits)", SpamHits );
-      write(4,RejectMsg, strlen(RejectMsg));
-      exit_clean(EXIT_MSG);
- #else
-      exit_clean(EXIT_500); 
- #endif
-#endif
-      break;
-
-      /* spamassassin processed message and no spam detected */
-    case 0:
-      /* open the spam file read only */
-      strncpy(message_name,spam_message_name,BUFFER_SIZE);
-      break;
-      /* errors , return temporary error */
-    default:
-      if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan:[%d]: check_spam had an error ret: %d\n", getppid(), ret);
-      }
-      close(fd);
-      exit_clean(EXIT_400); 
   }
 #endif
 
@@ -1353,10 +1355,10 @@ int check_spam()
   memset(buffer,0,sizeof(buffer));
   spamfs = fdopen(0,"r");
   while(fgets(buffer,sizeof(buffer)-1,spamfs) != NULL ) {
+    write(spam_fd, buffer,strlen(buffer));
     if ( InHeaders == 1 ) {
       is_spam(buffer);
     }
-    write(spam_fd, buffer,strlen(buffer));
     memset(buffer,0,sizeof(buffer));
   }
   close(spam_fd);
@@ -1738,7 +1740,7 @@ int str_rstr(register char *h,register char *n)
       return(-1);
     }
   }
-  return(0);
+  return((n < sn) ? 0 : -1);
 }
 
 #ifdef ENABLE_PER_DOMAIN
@@ -1986,7 +1988,7 @@ int is_spam(char *spambuf)
  char *tmpstr;
  char hits[10];
 
-  if ( spambuf[0] == '\n' || spambuf[1] == '\n' ) {
+  if ( spambuf[0] == '\n' ) {
     InHeaders = 0;
     return(0);
   }
@@ -1995,7 +1997,7 @@ int is_spam(char *spambuf)
     IsSpam = 1;
 
   /* still in the headers get Subject */ 
-  } else if ( strncmp(spambuf, "Subject:", 8 ) == 0 ) {
+  } else if ( strncmp(spambuf, "Subject: ", 9 ) == 0 ) {
     
     strncpy(Subject, &spambuf[9], sizeof(Subject)-1);
 
@@ -2030,12 +2032,7 @@ int is_spam(char *spambuf)
     } else {
        tmpstr+=5;
     }
-    if ( tmpstr == NULL ) {
-       if ( DebugFlag > 1 ) {
-         fprintf(stderr,
-           "simscan:[%d]: neither hits= or score= in X-Spam-Status header\n", getppid());
-       }
-    }
+
     memset(hits,0,sizeof(hits));
     for(l=0;l<9 && *tmpstr!=' '; ++l, ++tmpstr) {
       hits[l] = *tmpstr;
