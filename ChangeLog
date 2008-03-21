@@ -1,3 +1,10 @@
+03/21/08 Jason Frisvold
+         - Fix --enable-dpsam-args (Thanks Jean-Daniel Bonnetot)
+         - Prevent double virus scanning (Thanks Gerard Earley)
+         - Fix retrieval of SpamHits and ReqHits (Thanks anonymous)
+         - Add SpamAssassin's ReqHits to log line (Thanks anonymous)
+         - Add SPAM PASS log line (Thanks anonymous)
+
 11/12/07 Jason Frisvold
          - Improvement patch (Tom Collins)
          - - Clamdscan scans the message file instead of the message file and

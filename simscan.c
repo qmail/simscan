@@ -1,5 +1,5 @@
 /*
- * $Id: simscan.c,v 1.6 2007/11/13 19:10:13 xen0phage Exp $
+ * $Id: simscan.c,v 1.7 2008/03/21 16:06:32 xen0phage Exp $
  * Copyright (C) 2004-2005 Inter7 Internet Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -198,7 +198,7 @@ int is_dspam(char *spambuf);
 #endif
 
 float SpamHits;
-float ReqHits;
+float SAReqHits;
 
 /* Spam scanning globals */
 #ifdef ENABLE_SPAM
@@ -653,60 +653,64 @@ if (msgsize >= 250000) {
 
 #ifdef ENABLE_CLAMAV
   /* Run ClamAntiVirus, exit on errors */ 
-  ret = check_clam();
-  switch ( ret ) {
-    case -2: 
-      if ( DebugFlag > 0 ) { fprintf(stderr, "simscan:[%d]: clamdscan disabled\n", getppid()); }
-      break;
-    case -1: 
-      if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan:[%d]: fatal error executing clamdscan\n", getppid());
-      }
-      exit_clean(EXIT_400);
-      break;
-    case 1:
-      FoundVirus=1;
-      if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan:[%d]: clamdscan detected a virus\n", getppid());
-      }
-      break;
-    case 2:
-      if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan:[%d]: fatal error executing clamdscan\n", getppid());
-      }
-      exit_clean(EXIT_400);
-      break;
-    default: 
-      if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan:[%d]: normal clamdscan return code: %d\n", getppid(), ret);
-      }
-      break;
+  if (FoundVirus == 0) {
+    ret = check_clam();
+    switch ( ret ) {
+      case -2: 
+        if ( DebugFlag > 0 ) { fprintf(stderr, "simscan:[%d]: clamdscan disabled\n", getppid()); }
+        break;
+      case -1: 
+        if ( DebugFlag > 0 ) {
+          fprintf(stderr, "simscan:[%d]: fatal error executing clamdscan\n", getppid());
+        }
+        exit_clean(EXIT_400);
+        break;
+      case 1:
+        FoundVirus=1;
+        if ( DebugFlag > 0 ) {
+          fprintf(stderr, "simscan:[%d]: clamdscan detected a virus\n", getppid());
+        }
+        break;
+      case 2:
+        if ( DebugFlag > 0 ) {
+          fprintf(stderr, "simscan:[%d]: fatal error executing clamdscan\n", getppid());
+        }
+        exit_clean(EXIT_400);
+        break;
+      default: 
+        if ( DebugFlag > 0 ) {
+          fprintf(stderr, "simscan:[%d]: normal clamdscan return code: %d\n", getppid(), ret);
+        }
+        break;
+    }
   }
 #endif
 
 #ifdef ENABLE_TROPHIE
-  ret = check_trophie();
-  switch(ret) {
-    case 0:
-      if ( DebugFlag > 0 ) {
-       fprintf(stderr, "simscan:[%d]: trophie found no virus\n", getppid());
-      }
-      break;
-    case 1:
-      if ( DebugFlag > 0 ) {
-       fprintf(stderr, "simscan:[%d]: trophie found virus\n", getppid());
-      }
-      FoundVirus=1;
-      break;
-    case -1:
-      /* disabled */
-      if ( DebugFlag > 0 ) { fprintf(stderr, "simscan:[%d]: trophie disabled\n", getppid()); }
-      break;
-    default:
-      if ( DebugFlag > 0 ) {
-       fprintf(stderr, "simscan:[%d]: some temp. error occured with trophie\n", getppid());
-      }
-      exit_clean(EXIT_400);
+  if (FoundVirus == 0) {
+    ret = check_trophie();
+    switch(ret) {
+      case 0:
+        if ( DebugFlag > 0 ) {
+         fprintf(stderr, "simscan:[%d]: trophie found no virus\n", getppid());
+        }
+        break;
+      case 1:
+        if ( DebugFlag > 0 ) {
+         fprintf(stderr, "simscan:[%d]: trophie found virus\n", getppid());
+        }
+        FoundVirus=1;
+        break;
+      case -1:
+        /* disabled */
+        if ( DebugFlag > 0 ) { fprintf(stderr, "simscan:[%d]: trophie disabled\n", getppid()); }
+        break;
+      default:
+        if ( DebugFlag > 0 ) {
+         fprintf(stderr, "simscan:[%d]: some temp. error occured with trophie\n", getppid());
+        }
+        exit_clean(EXIT_400);
+    }
   }
 #endif
 
@@ -1070,6 +1074,7 @@ int check_dspam()
  int pim[2];
  int spam_fd;
  char *tmpbuf;
+ char *tmpstr;
 FILE *spamfs;
  int i;
  int got_data;
@@ -1098,26 +1103,27 @@ FILE *spamfs;
     fprintf(stderr, "simscan:[%d]: calling dspam\n", getppid());
   }
 
-  tmpbuf = malloc(strlen(DSPAM_ARGS)+1);
-  strcpy(tmpbuf, DSPAM_ARGS);
-
-  /* setup the dspam args 
-  dspam_args[0] = "dspam";
-  dspam_args[1] = "--stdout";
-  tmpstr = strtok(tmpbuf," ");
-
-  for(i=1;i<MAX_DSPAM_ARGS-1&&tmpstr!=NULL;++i,tmpstr=strtok(NULL," ")) {
-    dspam_args[i] = tmpstr;
-  }
-  */
+  /* setup the dspam args */
 
   i = 0;
-  dspam_args[i++] = "dspamc";
   dspam_args[i++] = "--stdout";
   dspam_args[i++] = "--client";
-  dspam_args[i++] = "--feature=chained,noise";
-  dspam_args[i++] = "--deliver=innocent,spam";
-  dspam_args[i++] = "--debug";
+
+  if ( strlen(DSPAM_ARGS)>0 ) { 
+    tmpbuf = malloc(strlen(DSPAM_ARGS)+1);
+    strcpy(tmpbuf, DSPAM_ARGS);
+    tmpstr = strtok(tmpbuf," ");
+    while ( tmpstr != NULL ) {
+      if ( strcmp(tmpstr,dspam_args[0])!=0 && strcmp(tmpstr,dspam_args[1])!=0 ) {
+        dspam_args[i++] = tmpstr;
+      }
+      tmpstr = strtok (NULL, " ");
+    }
+  } else { 
+    dspam_args[i++] = "--feature=chained,noise";
+    dspam_args[i++] = "--deliver=innocent,spam";
+    dspam_args[i++] = "--debug";
+  }
 
 #ifdef ENABLE_DSPAM_USER
   if ( MaxRcptTo==1 ) {
@@ -1350,7 +1356,7 @@ int check_spam()
  
   InHeaders = 1;
   SpamHits = 0.0;
-  ReqHits = 0.0;
+  SAReqHits = 0.0;
   IsSpam = 0;
   memset(buffer,0,sizeof(buffer));
   spamfs = fdopen(0,"r");
@@ -1376,31 +1382,39 @@ int check_spam()
   add_run_scanner(RCVD_SPAM_KEY);
 #endif
 
-#ifdef SPAM_HITS
-  if ( PerDomainHits==1 && ( SpamHits >= PDHits ) ) {
-#ifdef ENABLE_DROPMSG
-    log_message("SPAM DROPPED", Subject, 1);
-#else
-    log_message("SPAM REJECT", Subject,1);
-#endif
-    return(1);
-  } else if ( PerDomainHits==0 && ( SpamHits >= SPAM_HITS ) ) {
-#ifdef ENABLE_DROPMSG
-    log_message("SPAM DROPPED", Subject, 1);
-#else
-    log_message("SPAM REJECT", Subject,1);
-#endif
-    return(1);
-  }
+float tmpHits = 0.0;
 
-  if (SpamHits >= SPAM_HITS) {
-#ifdef ENABLE_DROPMSG
+#ifdef SPAM_HITS
+ #ifdef ENABLE_PER_DOMAIN
+  if ( PerDomainHits==1 ) {
+    tmpHits=PDHits;
+  } else if ( PerDomainHits==0 ) {
+    tmpHits=SPAM_HITS;
+  }
+ #else
+  tmpHits=SPAM_HITS;
+ #endif
+
+  if (DebugFlag > 0){      
+    fprintf(stderr, 
+      "simscan: PDHits: %.2f tmpHits: %.2f, SpamHits: %.2f, IsSpam: %d, PerDomainHits: %d\n",
+      PDHits, tmpHits, SpamHits, IsSpam, PerDomainHits);
+  }  
+
+  if (SpamHits >= tmpHits) {
+
+ #ifdef ENABLE_DROPMSG
     log_message("SPAM DROPPED", Subject, 1);
-#else
+ #else
     log_message("SPAM REJECT", Subject,1);
-#endif
+ #endif
+    return(1);
   } else {
-    log_message("CLEAN", Subject,1);
+    if ( IsSpam == 1 ) {
+      log_message("SPAM PASS", Subject,1);
+    } else {
+      log_message("CLEAN", Subject,1);
+    }
   }
 #else
 
@@ -1409,7 +1423,8 @@ int check_spam()
     if ( PerDomainSpamPassthru == 1) {
       if (( IsSpam == 1 ) && (DebugFlag > 0)){	    
         fprintf(stderr, 
-          "simscan:[%d]: delivering spam because spam-passthru is defined in this domain\n", getppid());
+          "simscan:[%d]: delivering spam because spam-passthru is defined in this domain\n",
+          getppid());
       }	
       log_message("PASSTHRU", Subject,1);
       return(0);
@@ -1993,11 +2008,13 @@ int is_spam(char *spambuf)
     return(0);
   }
 
-  if ( strncmp(spambuf, "X-Spam-Flag: YES", 16 ) == 0 ) {
+  if ( ( strncmp(spambuf, "X-Spam-Flag: YES", 16 ) == 0 ) ||
+       ( strncmp(spambuf, "X-Spam-Status: Yes", 18 ) == 0 ) ) {
     IsSpam = 1;
+  }
 
   /* still in the headers get Subject */ 
-  } else if ( strncmp(spambuf, "Subject: ", 9 ) == 0 ) {
+  if ( strncmp(spambuf, "Subject: ", 9 ) == 0 ) {
     
     strncpy(Subject, &spambuf[9], sizeof(Subject)-1);
 
@@ -2011,9 +2028,10 @@ int is_spam(char *spambuf)
         break;
       }
     }
+  }
 
   /* still in the headers check for spam header */
-  } else if ( strncmp(spambuf, "X-Spam-Status:", 14 ) == 0 ) {
+  if ( strncmp(spambuf, "X-Spam-Status:", 14 ) == 0 ) {
     tmpstr = strstr(spambuf, "hits=");
 
     /* spamassassin 3 uses score= as default
@@ -2045,11 +2063,11 @@ int is_spam(char *spambuf)
       for(l=0;l<9 && *tmpstr!=' '; ++l, ++tmpstr) {
         hits[l] = *tmpstr;
       }
-      ReqHits = atof(hits);
+      SAReqHits = atof(hits);
     }
 
   }
-  return(0);
+  return(IsSpam);
 }
 
 #endif
@@ -2292,7 +2310,7 @@ void log_message( char *state, char *subject, int spam )
 {
  int i;
 #ifdef ENABLE_SPAM
- float reqhits;
+ float SimscanReqHits;
 #endif
 
   gettimeofday(&stop,(struct timezone *) 0);
@@ -2300,19 +2318,20 @@ void log_message( char *state, char *subject, int spam )
 
   if ( spam == 1 ) {
 #ifdef ENABLE_SPAM
-    if ( PerDomainHits == 1 ) reqhits = PDHits;
-    else reqhits = ReqHits;
-    fprintf(stderr, "simscan:[%d]:%s (%.2f/%.2f):%3.4fs:%s:%s:%s:%s",
-      getppid(), state, SpamHits,reqhits, utime, subject,
+    if ( PerDomainHits == 1 ) SimscanReqHits = PDHits;
+    else SimscanReqHits = SAReqHits;
+    fprintf(stderr, "simscan:[%d]:%s (%.2f/%.2f/%.2f):%3.4fs:%s:%s:%s:%s",
+      getppid(), state, SpamHits, SAReqHits, SimscanReqHits, utime, subject,
       getenv("TCPREMOTEIP"), MailFrom, RcptTo[0]);
 #else
     fprintf(stderr, "simscan:[%d]:%s (%.4f/%.4f):%3.4fs:%s:%s:%s:%s",
-      getppid(), state, SpamProbability,DSpamConf, utime, subject,
+      getppid(), state, SpamProbability, DSpamConf, utime, subject,
       getenv("TCPREMOTEIP"), MailFrom, RcptTo[0]);
 #endif
   } else {
     fprintf(stderr, "simscan:[%d]:%s:%3.4fs:%s:%s:%s:%s",
-      getppid(),state,utime,subject,getenv("TCPREMOTEIP"),MailFrom,RcptTo[0]);
+      getppid(), state, utime, subject, getenv("TCPREMOTEIP"), MailFrom,
+      RcptTo[0]);
   }
 
   for(i=1;i<MaxRcptTo;++i) {
