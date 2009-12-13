@@ -1,3 +1,6 @@
+12/12/09 Jason Frisvold
+         - Make simscan aware of clamav cld files (Thanks Bob Maple)
+
 03/21/08 Jason Frisvold
          - Fix --enable-dpsam-args (Thanks Jean-Daniel Bonnetot)
          - Prevent double virus scanning (Thanks Gerard Earley)

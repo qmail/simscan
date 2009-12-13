@@ -4690,8 +4690,13 @@ fi;
           then
             clamavdb=$f
             break
+          elif test -f "$f/daily.cld"
+          then
+            clamavdb=$f
+            break
           fi
         done
+
 
         if test "$clamavdb" = ""
         then

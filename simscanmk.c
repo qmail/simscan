@@ -1,5 +1,5 @@
 /*
- * $Id: simscanmk.c,v 1.4 2007/10/30 18:01:52 xen0phage Exp $
+ * $Id: simscanmk.c,v 1.5 2009/12/13 04:39:38 xen0phage Exp $
  * Copyright (C) 2004-2005 Inter7 Internet Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -296,6 +296,10 @@ int make_version_cdb() {
     strncpy(dbpath,CLAMAVDBPATH,MAX_LINE);
     strncat(dbpath,"/main.cvd",(MAX_LINE-sizeof(CLAMAVDBPATH)-1));
   }
+  if(access(dbpath,F_OK)) {
+    strncpy(dbpath,CLAMAVDBPATH,MAX_LINE);
+    strncat(dbpath,"/main.cld",(MAX_LINE-sizeof(CLAMAVDBPATH)-1));
+  }
   strcat(data,"m:");
   if (pipe(pin)){
     printf("error opening pipe for sigtool\n");
@@ -329,6 +333,10 @@ int make_version_cdb() {
     if(access(dbpath,F_OK)) {
       strncpy(dbpath,CLAMAVDBPATH,MAX_LINE);
       strncat(dbpath,"/daily.cvd",(MAX_LINE-sizeof(CLAMAVDBPATH)-1));
+    }
+    if(access(dbpath,F_OK)) {
+      strncpy(dbpath,CLAMAVDBPATH,MAX_LINE);
+      strncat(dbpath,"/daily.cld",(MAX_LINE-sizeof(CLAMAVDBPATH)-1));
     }
     if (pipe(pin)){
      printf("error opening pipe for sigtool\n");
