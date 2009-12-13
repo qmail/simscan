@@ -1,5 +1,5 @@
 /*
- * $Id: simscan.c,v 1.7 2008/03/21 16:06:32 xen0phage Exp $
+ * $Id: simscan.c,v 1.8 2009/12/13 04:45:39 xen0phage Exp $
  * Copyright (C) 2004-2005 Inter7 Internet Technologies, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -920,7 +920,7 @@ int run_ripmime()
      close(1);
      close(2);
      execl(RIPMIME, "ripmime", "--disable-qmail-bounce", 
-           "-i", message_name, "-d", NULL );
+           "-i", message_name, "-d", workdir, NULL );
      _exit(-1);
   }
 

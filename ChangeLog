@@ -1,5 +1,6 @@
 12/12/09 Jason Frisvold
          - Make simscan aware of clamav cld files (Thanks Bob Maple)
+         - Fix ripmime working directory (Thanks Gladiston Justini)
 
 03/21/08 Jason Frisvold
          - Fix --enable-dpsam-args (Thanks Jean-Daniel Bonnetot)
