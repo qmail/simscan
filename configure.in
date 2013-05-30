@@ -616,18 +616,24 @@ AC_ARG_ENABLE(received, [  --enable-received=y|n   Add a Received: line to the m
           CLAMAV_DB="$enableval"
         ])
         clamavdb=""
-        for f in "$CLAMAV_DB" /usr/local/share/clamav /var/lib/clamav
-        do
-          if test -f "$f/daily.cvd"
-          then
-            clamavdb=$f
-            break
-          elif test -f "$f/daily.inc/daily.info"
-          then
-            clamavdb=$f
-            break
-          fi
-        done
+        if test "$CLAMAV_DB" = ""
+        then
+          for f in "$CLAMAV_DB" /usr/local/share/clamav /var/lib/clamav
+          do
+            if test -f "$f/daily.cvd"
+            then
+              clamavdb=$f
+              break
+            elif test -f "$f/daily.inc/daily.info"
+            then
+              clamavdb=$f
+              break
+            fi
+          done
+        else
+          # don't test path when set on compile-time
+          clamavdb="$CLAMAV_DB"
+        fi
 
         if test "$clamavdb" = ""
         then
