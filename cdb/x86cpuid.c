@@ -1,4 +1,5 @@
 #include <signal.h>
+#include <stdio.h>
 
 void nope()
 {

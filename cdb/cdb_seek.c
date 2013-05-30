@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <errno.h>
-extern int errno;
+#include <stdio.h>
+#include <unistd.h>
 #include "cdb.h"
 
 #ifndef SEEK_SET
@@ -51,7 +52,7 @@ char *key;
 unsigned int len;
 uint32 *dlen;
 {
-  char packbuf[8];
+  unsigned char packbuf[8];
   uint32 pos;
   uint32 h;
   uint32 lenhash;

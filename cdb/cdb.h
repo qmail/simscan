@@ -8,6 +8,7 @@
 #define CDB_HASHSTART 5381
 extern uint32 cdb_hashadd(uint32,unsigned char);
 extern uint32 cdb_hash(char *,unsigned int);
+extern uint32 cdb_unpack(unsigned char *buf);
 
 struct cdb {
   char *map; /* 0 if no map is available */
