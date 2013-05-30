@@ -144,7 +144,7 @@ int make_version_cdb() {
   int fnd_patvers;
 #endif
 
-  if ( (fdout = open(CdbTmpFile, O_CREAT | O_TRUNC | O_WRONLY)) < 0) {
+  if ( (fdout = open(CdbTmpFile, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR )) < 0) {
     printf("error on open tmp file\n");
     return(-1);
   }
@@ -407,7 +407,7 @@ int make_cdb()
     return(-1);
   }
  
-  if ( (fdout = open(CdbTmpFile, O_CREAT | O_TRUNC | O_WRONLY)) < 0) {
+  if ( (fdout = open(CdbTmpFile, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR )) < 0) {
      printf("error on open tmp file\n");
     return(-1);
   }
