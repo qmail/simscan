@@ -372,6 +372,54 @@ int make_version_cdb() {
   }
   close(pin[0]); close(pin[1]);
 #endif
+#ifdef ENABLE_AVIRA
+  memset(data,'\0',MAX_DATA);
+  strncpy(key,RCVD_AVIRA_KEY,MAX_KEY);
+  if (pipe(pin)){
+    printf("error opening pipe for Avira antivir\n");
+  }
+  pid=vfork();
+  if (pid==0){
+      /* in the child */
+      close(pin[0]);
+      dup2(pin[1],1); /* stdout goes to the pipe */
+      execl(AVIRABINARY,AVIRABINARY,"--version",NULL);
+      printf("error running Avira antivir\n");
+      _exit(-1); /* we should never get here! */
+  } else if (pid){
+    /* in the parent */
+    close(pin[1]);
+    while((r=read(pin[0],input,MAX_LINE))){
+      /* we are looking for this line:
+         vdf version:      X.XX
+        */
+      input[r]='\0';
+      
+      if ( (pos=strstr(input,"product version: "))){
+        /* this line is the db version */
+        for(f=0;*(pos+18+f)!='\n' && *(pos+18+f)!='\0';f++);
+        strncat(data,pos+18,f);
+      }
+      strcat(data, "/e:");
+      if ( (pos=strstr(input,"engine version: "))){
+        /* this line is the db version */
+        for(f=0;*(pos+18+f)!='\n' && *(pos+18+f)!='\0';f++);
+        strncat(data,pos+18,f);
+      }
+      strcat(data, "/v:");
+      if ( (pos=strstr(input,"vdf version: "))){
+        /* this line is the db version */
+        for(f=0;*(pos+18+f)!='\n' && *(pos+18+f)!='\0';f++);
+        strncat(data,pos+18,f);
+      }
+    }
+    waitpid(pid,&rmstat,0);
+    add_cdb_key(&c,key,data);
+  } else {
+    printf("error forking for Avira antivir\n");
+  }
+  close(pin[0]); close(pin[1]);
+#endif
   if (cdb_make_finish(&c) == -1) {
     printf("error in cdb_make_finish\n"); 
     return(-1);

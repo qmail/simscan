@@ -546,7 +546,7 @@ then
    ripmime=""
    for f in "$ENABLE_RIPMIME" /usr/local/bin/ripmime /usr/bin/ripmime 
    do
-      if test -f $f
+      if test -x $f
       then
          ripmime=$f
          break
@@ -565,6 +565,25 @@ then
 fi
 
 AC_DEFINE_UNQUOTED(DO_RIPMIME, $DO_RIPMIME, [run ripmime program])
+
+#----------------------------------------------------------------------
+ENABLE_AVIRA=0
+# check for path to Antivir avira
+AC_ARG_ENABLE(avira,
+	[  --enable-avira=PATH   Full path to the Avira antivir binary.],
+        [
+          avira="$enableval"
+          AC_MSG_RESULT(yes)
+          ENABLE_AVIRA=1
+          AC_DEFINE_UNQUOTED(AVIRABINARY,"$avira","path to Avira antivir binary")
+          AC_DEFINE_UNQUOTED([ENABLE_AVIRA], $ENABLE_AVIRA, [enable Avira antivir scanning])
+          DO_RIPMIME=1
+          VIRUSSCANNER=1
+        ], [
+          AC_MSG_RESULT(no)
+          AC_MSG_ERROR([Unable to find your Avira antivir binary, specify --enable-avira.])
+        ]
+      )
 
 #----------------------------------------------------------------------
 AC_DEFINE_UNQUOTED(VIRUSSCANNER, $VIRUSSCANNER, [one or more virusscanners are active])
@@ -678,8 +697,9 @@ AC_ARG_ENABLE(received, [  --enable-received=y|n   Add a Received: line to the m
       AC_DEFINE([RCVD_ATTACH_KEY], "attach", [key for attachment scanner])
       AC_DEFINE([RCVD_SPAM_KEY], "spam", [key for spamassassin])
       AC_DEFINE([RCVD_CLAM_KEY], "clamav", [key for clamav])
-      AC_DEFINE([RCVD_TROPHIE_KEY], "trophie", [key for clamav])
+      AC_DEFINE([RCVD_TROPHIE_KEY], "trophie", [key for trophie])
       AC_DEFINE([RCVD_DSPAM_KEY], "dspam", [key for dspam])
+      AC_DEFINE([RCVD_AVIRA_KEY], "avira", [key for Avira antivir])
      ;;
     *)
       ENABLE_RECEIVED=0
@@ -794,6 +814,16 @@ then
 else
   echo " ripmime program       = OFF" 
 fi
+
+case $ENABLE_AVIRA in
+  1*|y*|Y*)
+  echo " Avira antivir binary  = $avira"
+  echo " Avira scanning        = ON"
+    ;;
+  *)
+  echo " Avira scanning        = OFF"
+    ;;
+esac
 
 case $ENABLE_CUSTOM_SMTP_REJECT in
   1*|y*|Y*)

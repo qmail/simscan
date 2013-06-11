@@ -87,6 +87,8 @@ char *dspam_args[MAX_DSPAM_ARGS];
 #define MAX_SPAMC_ARGS 20
 char *spamc_args[MAX_SPAMC_ARGS];
 
+char *avira_args[] = { "antivir", NULL };
+
 /* Global work buffers */
 #define BUFFER_SIZE 2048
 char buffer[BUFFER_SIZE];
@@ -135,6 +137,7 @@ void lowerit(char *input);
 int  PerDomainClam;
 int  PerDomainSpam;
 int  PerDomainTrophie;
+int  PerDomainAvira;
 int  PerDomainSpamPassthru;
 int  MaxDomains;
 char Domains[MAXDOMAINS][MAXDOMLEN];
@@ -164,6 +167,11 @@ int run_ripmime();
 /* Trophie virus scanner globals */ 
 #ifdef ENABLE_TROPHIE
 int check_trophie();
+#endif
+
+#ifdef ENABLE_AVIRA
+int check_avira();
+int is_avira(char *avirabuf);
 #endif
 
 /* ClamAntiVirus globals */
@@ -592,7 +600,7 @@ if (msgsize >= 250000) {
 
 #ifdef ENABLE_DROPMSG
       if ( DebugFlag > 0 ) {
-        fprintf(stderr, "simscan: droping the message\n");
+        fprintf(stderr, "simscan: dropping the message\n");
       }
       exit_clean(EXIT_0);
       /* Drop the message, returning success to sender. */
@@ -713,6 +721,113 @@ if (msgsize >= 250000) {
     }
   }
 #endif
+
+#ifdef ENABLE_AVIRA
+  if (FoundVirus == 0) {
+    ret = check_avira();
+    switch ( ret ) {
+    case 0:
+      if (DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira found no virus.\n", getppid());
+      }
+      break;
+    case 1:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira found virus.\n", getppid());
+     }
+      FoundVirus = 1;
+      break;
+    case 2:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira found virus in memory.\n", getppid());
+      }
+      FoundVirus = 1;
+      break;
+    case 3:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira found suspicious file.\n", getppid());
+      }
+      FoundVirus = 1;
+      break;
+    case 100:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira displayed help.\n", getppid());
+      }
+      break;
+    case 101:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira found macro in document.\n", getppid());
+      }
+      break;
+    case 102:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira already ran today.\n", getppid());
+      }
+      break;
+    case 200:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira out of memory.\n", getppid());
+      }
+      break;
+    case 201:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira could not find given response file.\n", getppid());
+      }
+      break;
+    case 202:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira found nested response files.\n", getppid());
+      }
+      break;
+    case 203:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira found invalid option.\n", getppid());
+      }
+      break;
+    case 204:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira did not found directory to scan.\n", getppid());
+      }
+      break;
+    case 205:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira could not create log file.\n", getppid());
+      }
+      break;
+    case 210:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira was not able to load library.\n", getppid());
+      }
+      break;
+    case 211:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira self check failed.\n", getppid());
+      }
+      break;
+    case 212:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira was not able to read virus definitions.\n", getppid());
+      }
+      break;
+    case 213:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira was not able to initialize.\n", getppid());
+      }
+      break;
+    case 214:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: avira is not licensed.\n", getppid());
+      }
+      break;
+    default:
+      if ( DebugFlag > 0 ) {
+	fprintf(stderr, "simscan:[%d]: some temporary error occured with avira.\n", getppid());
+      }
+      exit_clean(EXIT_400);
+    }
+  }
+#endif
+
 
 #ifdef VIRUSSCANNER
   /* check for viri, return error if found or a temporary problem */
@@ -942,6 +1057,86 @@ int run_ripmime()
 }
 #endif
 
+#ifdef ENABLE_AVIRA
+/* 
+ * scan for viri with avira
+ */
+int check_avira()
+{
+ int pid;
+ int rmstat;
+ int pim[2];
+ int file_count;
+
+#ifdef ENABLE_PER_DOMAIN
+  if ( PerDomainAvira == 0 ) return(-2);
+#endif
+
+  if ( DebugFlag > 0 ) {
+    fprintf(stderr, "simscan: calling avira\n");
+  }
+
+  if ( pipe(pim) != 0 ) return(-1);
+
+  /* fork avira */
+  switch(pid = vfork()) {
+    case -1:
+      close(pim[0]);
+      close(pim[1]);
+      return(-1);
+    case 0:
+      close(pim[0]);
+      dup2(pim[1],1);
+      close(pim[1]);
+      execve(AVIRABINARY, avira_args, 0);
+      _exit(-1);
+  }
+  close(pim[1]);
+  dup2(pim[0],0);
+  close(pim[0]);
+
+  memset(buffer,0,sizeof(buffer));
+  while((file_count=read(0,buffer,BUFFER_SIZE))>0) {
+    is_avira(buffer);
+    memset(buffer,0,sizeof(buffer));
+  }
+
+  /* wait for avira to finish */
+  if (waitpid(pid,&rmstat, 0) == -1) { 
+    return(-1);
+  }
+
+  /* check if the child died on a signal */
+  if ( WIFSIGNALED(rmstat) ) return(-1);
+
+#ifdef ENABLE_RECEIVED
+  add_run_scanner(RCVD_AVIRA_KEY);
+#endif
+  /* if it exited okay, return the status */ 
+  if ( WIFEXITED(rmstat) ) {
+    return(WEXITSTATUS(rmstat));
+  }
+
+  /* should not reach here */
+  return(-1);
+}
+
+int is_avira(char *avirabuf) {
+  int f;
+  char *tmpstr;
+
+  if ( (tmpstr=strstr(avirabuf, "ALERT")) != NULL ) {
+    if ( DebugFlag > 3 ) {
+      fprintf(stderr, "found message: '%s'\n", tmpstr);
+    }
+    for(f=0;*(tmpstr+8+f)!=']' && *(tmpstr+8+f)!='\n' && *(tmpstr+8+f)!='\0';f++);
+    memset(VirusName,0,sizeof(VirusName));
+    strncpy(VirusName, tmpstr+8, f);
+    return(1);
+  }
+  return(0);
+}
+#endif
 
 /* 
  * scan for viri
@@ -1764,6 +1959,7 @@ void init_per_domain()
   PerDomainClam = 0;
   PerDomainSpam = 0;
   PerDomainTrophie = 0;
+  PerDomainAvira = 0;
   PerDomainSpamPassthru = 0;
   per_domain_lookup("");
 }
@@ -1828,6 +2024,12 @@ void per_domain_lookup( char *key )
       if ( DebugFlag > 1 ) fprintf(stderr, "simscan:[%d]: spamuser = %s\n", getppid(), spamuser);
 #endif
 
+     } else if ( strcasecmp(parm,"avira") == 0 ) {
+       if ( strcasecmp(val, "yes") == 0 ) {
+         PerDomainAvira = 1; 
+       } else if ( strcasecmp(val, "no") == 0 ) {
+         PerDomainAvira = 0; 
+       }
     } else if ( strcasecmp(parm,"trophie") == 0 ) {
       if ( strcasecmp(val, "yes") == 0 ) {
         PerDomainTrophie = 1; 
