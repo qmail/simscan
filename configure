@@ -735,6 +735,7 @@ enable_qmail_queue
 enable_trophie_socket
 enable_trophie_path
 enable_ripmime
+enable_avira
 enable_received
 enable_spamassassin_path
 enable_clamavdb_path
@@ -1396,6 +1397,7 @@ Optional Features:
   --enable-trophie-socket=PATH   Full path to the trophie socket.
   --enable-trophie-path=PATH   Full path to the trophie binary.
   --enable-ripmime=PATH   Full path to ripmime program.
+  --enable-avira=PATH   Full path to the Avira antivir binary.
   --enable-received=y|n   Add a Received: line to the message, showing the runned scanners and some stats
   --enable-spamassassin-path=PATH  Path to the spamassassin binary
   --enable-clamavdb-path=PATH  Directory where the clamav master.cvd and daily.cvd files are saved
@@ -4996,7 +4998,7 @@ $as_echo_n "checking whether we can locate the ripmime program... " >&6; }
    ripmime=""
    for f in "$ENABLE_RIPMIME" /usr/local/bin/ripmime /usr/bin/ripmime
    do
-      if test -f $f
+      if test -x $f
       then
          ripmime=$f
          break
@@ -5024,6 +5026,39 @@ fi
 cat >>confdefs.h <<_ACEOF
 #define DO_RIPMIME $DO_RIPMIME
 _ACEOF
+
+
+#----------------------------------------------------------------------
+ENABLE_AVIRA=0
+# check for path to Antivir avira
+# Check whether --enable-avira was given.
+if test "${enable_avira+set}" = set; then :
+  enableval=$enable_avira;
+          avira="$enableval"
+          { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+          ENABLE_AVIRA=1
+
+cat >>confdefs.h <<_ACEOF
+#define AVIRABINARY "$avira"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define ENABLE_AVIRA $ENABLE_AVIRA
+_ACEOF
+
+          DO_RIPMIME=1
+          VIRUSSCANNER=1
+
+else
+
+          { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+          as_fn_error $? "Unable to find your Avira antivir binary, specify --enable-avira." "$LINENO" 5
+
+
+fi
 
 
 #----------------------------------------------------------------------
@@ -5193,6 +5228,9 @@ $as_echo "#define RCVD_TROPHIE_KEY \"trophie\"" >>confdefs.h
 
 
 $as_echo "#define RCVD_DSPAM_KEY \"dspam\"" >>confdefs.h
+
+
+$as_echo "#define RCVD_AVIRA_KEY \"avira\"" >>confdefs.h
 
      ;;
     *)
@@ -7171,6 +7209,16 @@ then
 else
   echo " ripmime program       = OFF"
 fi
+
+case $ENABLE_AVIRA in
+  1*|y*|Y*)
+  echo " Avira antivir binary  = $avira"
+  echo " Avira scanning        = ON"
+    ;;
+  *)
+  echo " Avira scanning        = OFF"
+    ;;
+esac
 
 case $ENABLE_CUSTOM_SMTP_REJECT in
   1*|y*|Y*)
