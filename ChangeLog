@@ -1,3 +1,8 @@
+01/22/2014 Johannes Weberhofer
+	- Fixed issue in combination with a ripmime-problem as described
+	  in http://permalink.gmane.org/gmane.mail.qmail.simscan/3880
+	  (Thanks to Gustavo Castro)
+
 12/12/09 Jason Frisvold
          - Make simscan aware of clamav cld files (Thanks Bob Maple)
          - Fix ripmime working directory (Thanks Gladiston Justini)

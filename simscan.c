@@ -1724,10 +1724,14 @@ int check_attach()
     for(i=0;i<MaxAttach;++i) {
       if ( DebugFlag > 2 ) fprintf(stderr, "simscan:[%d]: checking attachment %s against %s\n", getppid(), mydirent->d_name, bk_attachments[i] );  
       lowerit(mydirent->d_name); 
-      if ( str_rstr(mydirent->d_name,bk_attachments[i]) == 0 ) {
-        strncpy(AttachName, mydirent->d_name, sizeof(AttachName)-1); 
-        closedir(mydir);
-        return(1);
+      if ( strlen(mydirent->d_name) >= strlen(bk_attachments[i]) ) {
+        if ( str_rstr(mydirent->d_name,bk_attachments[i]) == 0 ) {
+          strncpy(AttachName, mydirent->d_name, sizeof(AttachName)-1);
+          closedir(mydir);
+          return(1);
+        }
+      } else {
+        if ( DebugFlag > 2 ) fprintf(stderr, "simscan: attachment name '%s' (%d) is shorter than '%s' (%d). IGNORED\n", mydirent->d_name, strlen( mydirent->d_name ), bk_attachments[i], strlen( bk_attachments[i] ) );
       }
     }
   }
