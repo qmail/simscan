@@ -1,7 +1,16 @@
 01/22/2014 Johannes Weberhofer
-	- Fixed issue in combination with a ripmime-problem as described
-	  in http://permalink.gmane.org/gmane.mail.qmail.simscan/3880
-	  (Thanks to Gustavo Castro)
+        - Fixed issue in combination with a ripmime-problem as described
+          in http://permalink.gmane.org/gmane.mail.qmail.simscan/3880
+          (Thanks to Gustavo Castro)
+
+30/05/2013 Johannes Weberhofer
+         - Added GPL license version 2.0
+         - Made several changes to allow building on with strict compiler 
+           settings
+         - Removed .cvsignore file and added .gitignore file
+         - Do no longer check for existing clamav-database when set via 
+           --enable-clamavdb-path
+         - added missing permissions S_IRUSR | S_IWUSR to open()
 
 12/12/09 Jason Frisvold
          - Make simscan aware of clamav cld files (Thanks Bob Maple)
