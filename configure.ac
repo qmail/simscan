@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([simscan], [1.4.1.3])
+AC_INIT([simscan], [1.4.1])
 AC_CONFIG_SRCDIR([simscan.c])
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)

@@ -1,3 +1,7 @@
+01/23/2014 Johannes Weberhofer
+        - Removed empty INSTALL file, added .gitattributes
+        - renamed configure.in and fixed it to work with newer automake
+
 01/22/2014 Johannes Weberhofer
         - Fixed issue in combination with a ripmime-problem as described
           in http://permalink.gmane.org/gmane.mail.qmail.simscan/3880
